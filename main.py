@@ -4,6 +4,9 @@ import signal
 import configparser
 import os
 
+from players import *
+from board import *
+
 
 class Game:
     def __init__(self):
@@ -12,6 +15,9 @@ class Game:
         self.walls = None
         self.player_1_pawns = [[None, None], [None, None]]
         self.player_2_pawns = [[None, None], [None, None]]
+        self.player_1 = None
+        self.player_2 = None
+        self.board = None
         signal.signal(signal.SIGINT, self.handle_interrupt)
 
     # Board and initial settings setup
@@ -21,17 +27,30 @@ class Game:
         else:
             self.input_config()
 
-        # TODO: Add computer/computer or player/player choice
-
         # TODO: Add player and computer classes
+
         if self.yes_no_prompt("Do you wish to play first?"):
-            pass
+            self.player_1 = Human()
+            self.player_2 = Computer()
         else:
-            pass
+            self.player_1 = Computer()
+            self.player_2 = Human()
+
+        self.board = Board(self.columns, self.rows, self.player_1_pawns, self.player_2_pawns)
 
     # Actual game logic
     def run(self):
+        first_player_playing = True
+
+        while not self.game_end():
+            self.board.print_board()
+
+            # TODO: Print current player info
+            # TODO: Process move
+
+    def game_end(self):
         pass
+        return False
 
     # Input the config from the user
     def input_config(self):
