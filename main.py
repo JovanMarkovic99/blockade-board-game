@@ -2,7 +2,8 @@
 
 import signal
 import configparser
-import os
+from os import path
+from itertools import cycle, chain
 
 from players import *
 from board import *
@@ -30,27 +31,40 @@ class Game:
         # TODO: Add player and computer classes
 
         if self.yes_no_prompt("Do you wish to play first?"):
-            self.player_1 = Human()
-            self.player_2 = Computer()
+            self.player_1 = Human('X', self.walls)
+            self.player_2 = Computer('O', self.walls)
         else:
-            self.player_1 = Computer()
-            self.player_2 = Human()
+            self.player_1 = Computer('X', self.walls)
+            self.player_2 = Human('O', self.walls)
 
         self.board = Board(self.columns, self.rows, self.player_1_pawns, self.player_2_pawns)
 
     # Actual game logic
     def run(self):
-        first_player_playing = True
+        moves = 0
+        current_player = None
+        player_cycle = cycle((self.player_1, self.player_2))
 
         while not self.game_end():
+            current_player = next(player_cycle)
+            moves += 1
+
             self.board.print_board()
+            print("Move: " + str(moves))
+            current_player.print_player_info()
+
+            self.play_move(current_player.get_move(self.board))
             break
-            # TODO: Print current player info
-            # TODO: Process move
+
+        current_player.print_winner(moves)
+
+    def play_move(self, move):
+        pass
 
     def game_end(self):
-        pass
-        return False
+        return any(map(lambda square: (square.starting == 'O' and square.center == 'X') or
+                                      (square.starting == 'X' and square.center == 'O'),
+                       chain(*iter(self.board.board))))
 
     # Input the config from the user
     def input_config(self):
@@ -91,8 +105,8 @@ class Game:
                                                             upper_bound=self.rows)
 
             # Check for colliding pawns
-            if self.player_1_pawns[0] in self.player_2_pawns or self.player_1_pawns[1] in self.player_2_pawns\
-                    or self.player_1_pawns[0] == self.player_1_pawns[1]\
+            if self.player_1_pawns[0] in self.player_2_pawns or self.player_1_pawns[1] in self.player_2_pawns \
+                    or self.player_1_pawns[0] == self.player_1_pawns[1] \
                     or self.player_2_pawns[0] == self.player_2_pawns[1]:
                 print("Pawn placement invalid, pawns cannot be inside each other!")
             else:
@@ -103,7 +117,7 @@ class Game:
         try:
             config = configparser.ConfigParser()
 
-            if not os.path.isfile("config.ini"):
+            if not path.isfile("config.ini"):
                 self.create_config()
 
             config.read("config.ini")
