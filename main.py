@@ -11,8 +11,8 @@ from board import *
 
 class Game:
     def __init__(self):
-        self.columns = None
         self.rows = None
+        self.columns = None
         self.walls = None
         self.player_1_pawns = [[None, None], [None, None]]
         self.player_2_pawns = [[None, None], [None, None]]
@@ -37,7 +37,7 @@ class Game:
             self.player_1 = Computer('X', self.player_1_pawns, self.walls)
             self.player_2 = Human('O', self.player_2_pawns, self.walls)
 
-        self.board = Board(self.columns, self.rows, self.player_1_pawns, self.player_2_pawns)
+        self.board = Board(self.rows, self.columns, self.player_1_pawns, self.player_2_pawns)
 
     # Actual game logic
     def run(self):

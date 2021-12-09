@@ -49,16 +49,26 @@ class Player:
             print("You cannot move your opponents pawns!")
             return False
 
+        # Out of bounds
+        if new_pos[0] >= board.rows or new_pos[1] >= board.columns:
+            print("Pawn indices out of bound!")
+            return False
+
         prev_pos = self.pawns[pawn - 1]
+        old_square = board.board[prev_pos[0]][prev_pos[1]]
+        new_square = board.board[new_pos[0]][new_pos[1]]
+
         # Unsupported movement
         if abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] - new_pos[1]) == 0 or \
                 abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] - new_pos[1]) > 2:
-            print("You cannot stay in place or move more than two squares from you current position")
+            print("You cannot stay in place or move more than two squares from you current position!")
             return False
 
-        old_square = board.board[prev_pos[0]]
-        # Move to a location with a pawn
-        #if board.board[new_pos[0]][new_pos[1]].center != ' ' and()
+        # Pawn is on the new square
+        if (new_square.center == 'X' or new_square.center == 'O') and \
+                (new_square.starting is None or new_square.starting == player):
+            print("You cannot jump to a square with a pawn!")
+            return False
 
         # Diagonal movement
         if abs(prev_pos[0] - new_pos[0]) == 1 and abs(prev_pos[1] - new_pos[1]) == 1:

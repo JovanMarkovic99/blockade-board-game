@@ -1,7 +1,7 @@
 class Board:
-    def __init__(self, columns, rows, player_1_pawns, player_2_pawns):
-        self.columns = columns
+    def __init__(self, rows, columns, player_1_pawns, player_2_pawns):
         self.rows = rows
+        self.columns = columns
         self.board = [[BoardSquare() for _ in range(columns)] for _ in range(rows)]
         self.board[player_1_pawns[0][0]][player_1_pawns[0][1]].set_start('X')
         self.board[player_1_pawns[1][0]][player_1_pawns[1][1]].set_start('X')
