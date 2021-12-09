@@ -28,14 +28,14 @@ class Game:
         else:
             self.input_config()
 
-        # TODO: Add player and computer classes
+        # TODO: Add player vs player and computer vs computer
 
         if self.yes_no_prompt("Do you wish to play first?"):
-            self.player_1 = Human('X', self.walls)
-            self.player_2 = Computer('O', self.walls)
+            self.player_1 = Human('X', self.player_1_pawns, self.walls)
+            self.player_2 = Computer('O', self.player_2_pawns, self.walls)
         else:
-            self.player_1 = Computer('X', self.walls)
-            self.player_2 = Human('O', self.walls)
+            self.player_1 = Computer('X', self.player_1_pawns, self.walls)
+            self.player_2 = Human('O', self.player_2_pawns, self.walls)
 
         self.board = Board(self.columns, self.rows, self.player_1_pawns, self.player_2_pawns)
 
