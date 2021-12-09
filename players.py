@@ -56,6 +56,10 @@ class Player:
             print("You cannot stay in place or move more than two squares from you current position")
             return False
 
+        old_square = board.board[prev_pos[0]]
+        # Move to a location with a pawn
+        #if board.board[new_pos[0]][new_pos[1]].center != ' ' and()
+
         # Diagonal movement
         if abs(prev_pos[0] - new_pos[0]) == 1 and abs(prev_pos[1] - new_pos[1]) == 1:
             pass

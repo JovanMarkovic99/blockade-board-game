@@ -68,41 +68,41 @@ class Game:
 
     # Input the config from the user
     def input_config(self):
-        self.columns = self.integer_prompt("Enter an odd number of columns (11 <= x <= 22): ", lower_bound=11,
-                                           upper_bound=22, even=False)
-        self.rows = self.integer_prompt("Enter an even number of rows (14 <= x <= 28): ", lower_bound=14,
-                                        upper_bound=28, even=True)
+        self.rows = self.integer_prompt("Enter an odd number of rows (11 <= x <= 22): ", lower_bound=11,
+                                        upper_bound=22, even=False)
+        self.columns = self.integer_prompt("Enter an even number of columns (14 <= x <= 28): ", lower_bound=14,
+                                           upper_bound=28, even=True)
         self.walls = self.integer_prompt("Enter the number of walls (9 <= x <= 18): ", lower_bound=9,
                                          upper_bound=18)
 
         while True:
             # Player 1 pawn positions (-1 is because the in-game board coordinates starts from 1)
-            self.player_1_pawns[0][0] = self.integer_prompt("Enter the column number of the first pawn of player 1 (1 "
-                                                            "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns) - 1
-            self.player_1_pawns[0][1] = self.integer_prompt("Enter the row number of the first pawn of player 1 (1 "
+            self.player_1_pawns[0][0] = self.integer_prompt("Enter the row number of the first pawn of player 1 (1 "
                                                             "<= x <= " + str(self.rows) + "): ", lower_bound=1,
                                                             upper_bound=self.rows) - 1
-            self.player_1_pawns[1][0] = self.integer_prompt("Enter the column number of the second pawn of player 1 (1 "
+            self.player_1_pawns[0][1] = self.integer_prompt("Enter the column number of the first pawn of player 1 (1 "
                                                             "<= x <= " + str(self.columns) + "): ", lower_bound=1,
                                                             upper_bound=self.columns) - 1
-            self.player_1_pawns[1][1] = self.integer_prompt("Enter the row number of the second pawn of player 1 (1 "
+            self.player_1_pawns[1][0] = self.integer_prompt("Enter the row number of the second pawn of player 1 (1 "
                                                             "<= x <= " + str(self.rows) + "): ", lower_bound=1,
                                                             upper_bound=self.rows) - 1
+            self.player_1_pawns[1][1] = self.integer_prompt("Enter the column number of the second pawn of player 1 (1 "
+                                                            "<= x <= " + str(self.columns) + "): ", lower_bound=1,
+                                                            upper_bound=self.columns) - 1
 
             # Player 2 pawn positions
-            self.player_2_pawns[0][0] = self.integer_prompt("Enter the column number of the first pawn of player 2 (1 "
-                                                            "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns) - 1
-            self.player_2_pawns[0][1] = self.integer_prompt("Enter the row number of the first pawn of player 2 (1 "
+            self.player_2_pawns[0][0] = self.integer_prompt("Enter the row number of the first pawn of player 2 (1 "
                                                             "<= x <= " + str(self.rows) + "): ", lower_bound=1,
                                                             upper_bound=self.rows) - 1
-            self.player_2_pawns[1][0] = self.integer_prompt("Enter the column number of the second pawn of player 2 (1 "
+            self.player_2_pawns[0][1] = self.integer_prompt("Enter the column number of the first pawn of player 2 (1 "
                                                             "<= x <= " + str(self.columns) + "): ", lower_bound=1,
                                                             upper_bound=self.columns) - 1
-            self.player_2_pawns[1][1] = self.integer_prompt("Enter the row number of the second pawn of player 2 (1 "
+            self.player_2_pawns[1][0] = self.integer_prompt("Enter the row number of the second pawn of player 2 (1 "
                                                             "<= x <= " + str(self.rows) + "): ", lower_bound=1,
                                                             upper_bound=self.rows) - 1
+            self.player_2_pawns[1][1] = self.integer_prompt("Enter the column number of the second pawn of player 2 (1 "
+                                                            "<= x <= " + str(self.columns) + "): ", lower_bound=1,
+                                                            upper_bound=self.columns) - 1
 
             # Check for colliding pawns
             if self.player_1_pawns[0] in self.player_2_pawns or self.player_1_pawns[1] in self.player_2_pawns \
@@ -125,70 +125,70 @@ class Game:
             for key in config["BOARD_INFO"]:
                 val = int(config["BOARD_INFO"][key])
 
-                if key == "columns" and 11 <= val <= 22 and val % 2 == 1:
-                    self.columns = val
-                elif key == "rows" and 14 <= val <= 28 and val % 2 == 0:
+                if key == "rows" and 11 <= val <= 22 and val % 2 == 1:
                     self.rows = val
+                elif key == "columns" and 14 <= val <= 28 and val % 2 == 0:
+                    self.columns = val
                 elif key == "walls" and 9 <= val <= 18:
                     self.walls = val
 
                 # Player 1 pawn positions (-1 is because the in-game board coordinates starts from 1)
-                elif key == "p1_pawn1_column":
-                    self.player_1_pawns[0][0] = val - 1
                 elif key == "p1_pawn1_row":
+                    self.player_1_pawns[0][0] = val - 1
+                elif key == "p1_pawn1_column":
                     self.player_1_pawns[0][1] = val - 1
-                elif key == "p1_pawn2_column":
-                    self.player_1_pawns[1][0] = val - 1
                 elif key == "p1_pawn2_row":
+                    self.player_1_pawns[1][0] = val - 1
+                elif key == "p1_pawn2_column":
                     self.player_1_pawns[1][1] = val - 1
 
                 # Player 2 pawn positions
-                elif key == "p2_pawn1_column":
-                    self.player_2_pawns[0][0] = val - 1
                 elif key == "p2_pawn1_row":
+                    self.player_2_pawns[0][0] = val - 1
+                elif key == "p2_pawn1_column":
                     self.player_2_pawns[0][1] = val - 1
-                elif key == "p2_pawn2_column":
-                    self.player_2_pawns[1][0] = val - 1
                 elif key == "p2_pawn2_row":
+                    self.player_2_pawns[1][0] = val - 1
+                elif key == "p2_pawn2_column":
                     self.player_2_pawns[1][1] = val - 1
 
         except IOError:
             print("Unable to read or create config falling back to default values")
         finally:
-            if self.columns is None:
-                self.columns = 11
             if self.rows is None:
-                self.rows = 14
+                self.rows = 11
+            if self.columns is None:
+                self.columns = 14
             if self.walls is None:
                 self.walls = 9
-            if None in self.player_1_pawns[0] or self.player_1_pawns[0][0] > self.columns or \
-                    self.player_1_pawns[0][1] > self.rows:
-                self.player_1_pawns[0] = [4, 4]
-            if None in self.player_1_pawns[1] or self.player_1_pawns[1][0] > self.columns or \
-                    self.player_1_pawns[1][1] > self.rows:
-                self.player_1_pawns[1] = [self.columns - 3, 4]
-            if None in self.player_2_pawns[0] or self.player_2_pawns[0][0] > self.columns or \
-                    self.player_2_pawns[0][1] > self.rows:
-                self.player_2_pawns[0] = [4, self.rows - 3]
-            if None in self.player_2_pawns[1] or self.player_2_pawns[1][0] > self.columns or \
-                    self.player_2_pawns[1][1] > self.rows:
-                self.player_2_pawns[1] = [self.columns - 3, self.rows - 3]
+            if None in self.player_1_pawns[0] or self.player_1_pawns[0][0] >= self.rows or \
+                    self.player_1_pawns[0][1] >= self.columns:
+                self.player_1_pawns[0] = [3, 3]
+            if None in self.player_1_pawns[1] or self.player_1_pawns[1][0] >= self.rows or \
+                    self.player_1_pawns[1][1] >= self.columns:
+                self.player_1_pawns[1] = [self.rows - 4, 3]
+            if None in self.player_2_pawns[0] or self.player_2_pawns[0][0] >= self.rows or \
+                    self.player_2_pawns[0][1] >= self.columns:
+                self.player_2_pawns[0] = [3, self.columns - 4]
+            if None in self.player_2_pawns[1] or self.player_2_pawns[1][0] >= self.rows or \
+                    self.player_2_pawns[1][1] >= self.columns:
+                self.player_2_pawns[1] = [self.rows - 4, self.columns - 4]
 
             # If pawns are placed inside each other default their position
             if self.player_1_pawns[0] in self.player_2_pawns or self.player_1_pawns[1] in self.player_2_pawns \
                     or self.player_1_pawns[0] == self.player_1_pawns[1] \
                     or self.player_2_pawns[0] == self.player_2_pawns[1]:
-                self.player_1_pawns = [[4, 4], [self.columns - 3, 4]]
-                self.player_2_pawns = [[4, self.rows - 3], [self.columns - 3, self.rows - 3]]
+                self.player_1_pawns = [[3, 3], [self.rows - 4, 3]]
+                self.player_2_pawns = [[3, self.columns - 4], [self.rows - 4, self.columns - 4]]
 
     @staticmethod
     def create_config():
         config = configparser.ConfigParser()
-        config["BOARD_INFO"] = {"columns": "11", "rows": "14", "walls": "9",
-                                "p1_pawn1_column": "4", "p1_pawn1_row": "4",
-                                "p1_pawn2_column": "8", "p1_pawn2_row": "4",
-                                "p2_pawn1_column": "4", "p2_pawn1_row": "11",
-                                "p2_pawn2_column": "8", "p2_pawn2_row": "11"}
+        config["BOARD_INFO"] = {"rows": "11", "columns": "14", "walls": "9",
+                                "p1_pawn1_row": "4", "p1_pawn1_column": "4",
+                                "p1_pawn2_row": "8", "p1_pawn2_column": "4",
+                                "p2_pawn1_row": "4", "p2_pawn1_column": "11",
+                                "p2_pawn2_row": "8", "p2_pawn2_column": "11"}
         with open("config.ini", "w") as configfile:
             config.write(configfile)
 
