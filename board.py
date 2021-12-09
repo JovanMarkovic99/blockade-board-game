@@ -3,10 +3,10 @@ class Board:
         self.columns = columns
         self.rows = rows
         self.board = [[BoardSquare() for _ in range(columns)] for _ in range(rows)]
-        self.board[player_1_pawns[0][1] - 1][player_1_pawns[0][0] - 1].set_start('X')
-        self.board[player_1_pawns[1][1] - 1][player_1_pawns[1][0] - 1].set_start('X')
-        self.board[player_2_pawns[0][1] - 1][player_2_pawns[0][0] - 1].set_start('O')
-        self.board[player_2_pawns[1][1] - 1][player_2_pawns[1][0] - 1].set_start('O')
+        self.board[player_1_pawns[0][1]][player_1_pawns[0][0]].set_start('X')
+        self.board[player_1_pawns[1][1]][player_1_pawns[1][0]].set_start('X')
+        self.board[player_2_pawns[0][1]][player_2_pawns[0][0]].set_start('O')
+        self.board[player_2_pawns[1][1]][player_2_pawns[1][0]].set_start('O')
 
     def print_board(self):
         for i in range(2 * self.rows + 3):

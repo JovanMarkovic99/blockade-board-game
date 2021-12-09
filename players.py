@@ -1,10 +1,11 @@
 from re import fullmatch
+from copy import deepcopy
 
 
 class Player:
     def __init__(self, player, pawns, walls):
         self.player = player
-        self.pawns = pawns
+        self.pawns = deepcopy(pawns)
         self.vertical_walls = walls
         self.horizontal_walls = walls
 
@@ -28,14 +29,20 @@ class Player:
 
         # Strip trailing and leading spaces and check the format
         move = move.strip()
-        if not fullmatch("\[[XO] [12]\] \[[1-9A-Z] [1-9A-Z]\]?( \[[ZP] [1-9A-Z] [1-9A-Z]\])", move):
+        if not fullmatch("\[[XO] [12]] \[[1-9A-Z] [1-9A-Z]]?( \[[ZP] [1-9A-Z] [1-9A-Z]])", move):
             print("Invalid format! Input must be of [X/O 1/2] [new_row new_column] ([Z/P row column])")
             return False
 
-        return self.valid_pawn_move(board, move[1], move[3], (move[7], move[9])) and \
-               (self.valid_wall_placement(board) if len(move) == 11 else self.valid_wall_placement(board, move[13],
-                                                                                                   (move[15],
-                                                                                                    move[17])))
+        return \
+            self.valid_pawn_move(board, move[1], int(move[3]), (board.board_index_to_matrix_index(move[7]),
+                                                                board.board_index_to_matrix_index(move[9]))) \
+            and \
+            (self.valid_wall_placement(board) if len(move) == 11 else self.valid_wall_placement(board, move[13],
+                                                                                                (
+                                                                            board.board_index_to_matrix_index(move[15]),
+                                                                            board.board_index_to_matrix_index(move[17]))
+                                                                                                )
+             )
 
     def valid_pawn_move(self, board, player, pawn, new_pos):
         if player != self.player:
@@ -44,12 +51,13 @@ class Player:
 
         prev_pos = self.pawns[pawn - 1]
         # Unsupported movement
-        if 1 > abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] + prev_pos[1]) > 2:
+        if abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] - new_pos[1]) == 0 or \
+                abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] - new_pos[1]) > 2:
             print("You cannot stay in place or move more than two squares from you current position")
             return False
 
         # Diagonal movement
-        if abs(prev_pos[0] - new_pos[0]) == 1 and abs(prev_pos[1] + prev_pos[1]) == 1:
+        if abs(prev_pos[0] - new_pos[0]) == 1 and abs(prev_pos[1] - new_pos[1]) == 1:
             pass
 
         # Straight movement
@@ -70,7 +78,7 @@ class Player:
             print("There are no more walls of that type to place!")
             return False
 
-        row, column = board.board_index_to_matrix_index(pos[0]), board.board_index_to_matrix_index(pos[1])
+        row, column = pos[0], pos[1]
         if row >= board.rows - 1 or column >= board.columns - 1:
             print("Wall indices out of bound!")
             return False
@@ -101,7 +109,7 @@ class Human(Player):
 
     def get_move(self, board):
         move = None
-        while self.valid_move(board, move):
+        while not self.valid_move(board, move):
             move = input("Enter the move: ")
 
         # TODO: Return a move

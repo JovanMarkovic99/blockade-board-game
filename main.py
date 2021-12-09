@@ -76,33 +76,33 @@ class Game:
                                          upper_bound=18)
 
         while True:
-            # Player 1 pawn positions
+            # Player 1 pawn positions (-1 is because the in-game board coordinates starts from 1)
             self.player_1_pawns[0][0] = self.integer_prompt("Enter the column number of the first pawn of player 1 (1 "
                                                             "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns)
+                                                            upper_bound=self.columns) - 1
             self.player_1_pawns[0][1] = self.integer_prompt("Enter the row number of the first pawn of player 1 (1 "
                                                             "<= x <= " + str(self.rows) + "): ", lower_bound=1,
-                                                            upper_bound=self.rows)
+                                                            upper_bound=self.rows) - 1
             self.player_1_pawns[1][0] = self.integer_prompt("Enter the column number of the second pawn of player 1 (1 "
                                                             "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns)
+                                                            upper_bound=self.columns) - 1
             self.player_1_pawns[1][1] = self.integer_prompt("Enter the row number of the second pawn of player 1 (1 "
                                                             "<= x <= " + str(self.rows) + "): ", lower_bound=1,
-                                                            upper_bound=self.rows)
+                                                            upper_bound=self.rows) - 1
 
             # Player 2 pawn positions
             self.player_2_pawns[0][0] = self.integer_prompt("Enter the column number of the first pawn of player 2 (1 "
                                                             "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns)
+                                                            upper_bound=self.columns) - 1
             self.player_2_pawns[0][1] = self.integer_prompt("Enter the row number of the first pawn of player 2 (1 "
                                                             "<= x <= " + str(self.rows) + "): ", lower_bound=1,
-                                                            upper_bound=self.rows)
+                                                            upper_bound=self.rows) - 1
             self.player_2_pawns[1][0] = self.integer_prompt("Enter the column number of the second pawn of player 2 (1 "
                                                             "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns)
+                                                            upper_bound=self.columns) - 1
             self.player_2_pawns[1][1] = self.integer_prompt("Enter the row number of the second pawn of player 2 (1 "
                                                             "<= x <= " + str(self.rows) + "): ", lower_bound=1,
-                                                            upper_bound=self.rows)
+                                                            upper_bound=self.rows) - 1
 
             # Check for colliding pawns
             if self.player_1_pawns[0] in self.player_2_pawns or self.player_1_pawns[1] in self.player_2_pawns \
@@ -132,25 +132,25 @@ class Game:
                 elif key == "walls" and 9 <= val <= 18:
                     self.walls = val
 
-                # Player 1 pawn positions
+                # Player 1 pawn positions (-1 is because the in-game board coordinates starts from 1)
                 elif key == "p1_pawn1_column":
-                    self.player_1_pawns[0][0] = val
+                    self.player_1_pawns[0][0] = val - 1
                 elif key == "p1_pawn1_row":
-                    self.player_1_pawns[0][1] = val
+                    self.player_1_pawns[0][1] = val - 1
                 elif key == "p1_pawn2_column":
-                    self.player_1_pawns[1][0] = val
+                    self.player_1_pawns[1][0] = val - 1
                 elif key == "p1_pawn2_row":
-                    self.player_1_pawns[1][1] = val
+                    self.player_1_pawns[1][1] = val - 1
 
                 # Player 2 pawn positions
                 elif key == "p2_pawn1_column":
-                    self.player_2_pawns[0][0] = val
+                    self.player_2_pawns[0][0] = val - 1
                 elif key == "p2_pawn1_row":
-                    self.player_2_pawns[0][1] = val
+                    self.player_2_pawns[0][1] = val - 1
                 elif key == "p2_pawn2_column":
-                    self.player_2_pawns[1][0] = val
+                    self.player_2_pawns[1][0] = val - 1
                 elif key == "p2_pawn2_row":
-                    self.player_2_pawns[1][1] = val
+                    self.player_2_pawns[1][1] = val - 1
 
         except IOError:
             print("Unable to read or create config falling back to default values")
