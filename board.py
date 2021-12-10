@@ -42,13 +42,13 @@ class Board:
 
                     # Left-right walls
                     else:
-                        print("|" if self.board[index_i][index_j].right is None else "‖", end="")
+                        print("‖" if self.board[index_i][index_j].right else "|", end="")
 
                 # Top-bottom wall rows
 
                 # Top-bottom walls
                 elif j != 0 and j != 2 * self.columns + 2 and j % 2 == 0:
-                    print("—" if self.board[index_i][index_j].top is None else "=", end="")
+                    print("=" if self.board[index_i][index_j].bottom else "—", end="")
 
                 else:
                     print(" ", end="")
@@ -66,13 +66,25 @@ class Board:
 class BoardSquare:
     def __init__(self, center=" "):
         self.center = center
-        self.top = None
-        self.left = None
-        self.right = None
-        self.bottom = None
+        self.top = False
+        self.left = False
+        self.right = False
+        self.bottom = False
         # Variable for remembering the starting position of first or second player
         self.starting = None
 
     def set_start(self, player):
         self.starting = player
         self.center = player
+
+    def top_left(self):
+        return self.top and self.left
+
+    def top_right(self):
+        return self.top and self.right
+
+    def bottom_left(self):
+        return self.bottom and self.left
+
+    def bottom_right(self):
+        return self.bottom and self.right

@@ -54,12 +54,42 @@ class Game:
             current_player.print_player_info()
 
             self.play_move(current_player.get_move(self.board))
-            break
 
         current_player.print_winner(moves)
 
     def play_move(self, move):
-        pass
+        # TODO: Remove when the computer returns a move
+        if move is None:
+            return
+
+        old_pos = None
+        new_pos = (move[0][2], move[0][3])
+
+        # Update pawn position
+        if move[0][0] == 'X':
+            old_pos = (self.player_1_pawns[move[0][1] - 1][0], self.player_1_pawns[move[0][1] - 1][1])
+            self.player_1_pawns[move[0][1] - 1][0], self.player_1_pawns[move[0][1] - 1][1] = new_pos[0], new_pos[1]
+        else:
+            old_pos = (self.player_2_pawns[move[0][1] - 1][0], self.player_2_pawns[move[0][1] - 1][1])
+            self.player_2_pawns[move[0][1] - 1][0], self.player_2_pawns[move[0][1] - 1][1] = new_pos[0], new_pos[1]
+
+        # Update board
+        self.board.board[old_pos[0]][old_pos[1]].center = \
+            ' ' if self.board.board[old_pos[0]][old_pos[1]].starting is None else '·'
+        self.board.board[new_pos[0]][new_pos[1]].center = move[0][0]
+
+        # Update board walls
+        if len(move) == 2:
+            if move[1][0] == 'Z':
+                self.board.board[move[1][1]][move[1][2]].right = True
+                self.board.board[move[1][1]][move[1][2] + 1].left = True
+                self.board.board[move[1][1] + 1][move[1][2]].right = True
+                self.board.board[move[1][1] + 1][move[1][2] + 1].left = True
+            else:
+                self.board.board[move[1][1]][move[1][2]].bottom = True
+                self.board.board[move[1][1]][move[1][2] + 1].bottom = True
+                self.board.board[move[1][1] + 1][move[1][2]].top = True
+                self.board.board[move[1][1] + 1][move[1][2] + 1].top = True
 
     def game_end(self):
         return any(map(lambda square: (square.starting == 'O' and square.center == 'X') or

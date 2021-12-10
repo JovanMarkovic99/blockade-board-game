@@ -1,11 +1,10 @@
 from re import fullmatch
-from copy import deepcopy
 
 
 class Player:
     def __init__(self, player, pawns, walls):
         self.player = player
-        self.pawns = deepcopy(pawns)
+        self.pawns = pawns
         self.vertical_walls = walls
         self.horizontal_walls = walls
 
@@ -39,8 +38,8 @@ class Player:
             and \
             (self.valid_wall_placement(board) if len(move) == 11 else self.valid_wall_placement(board, move[13],
                                                                                                 (
-                                                                            board.board_index_to_matrix_index(move[15]),
-                                                                            board.board_index_to_matrix_index(move[17]))
+                                                                        board.board_index_to_matrix_index(move[15]),
+                                                                        board.board_index_to_matrix_index(move[17]))
                                                                                                 )
              )
 
@@ -70,13 +69,125 @@ class Player:
             print("You cannot jump to a square with a pawn!")
             return False
 
-        # Diagonal movement
-        if abs(prev_pos[0] - new_pos[0]) == 1 and abs(prev_pos[1] - new_pos[1]) == 1:
-            pass
+        # Top
+        if new_pos[0] < prev_pos[0]:
+            # Top-Left
+            if new_pos[1] < prev_pos[1]:
+                if old_square.top_left() or new_square.bottom_right() or \
+                        (old_square.left and new_square.right) or (old_square.top and new_square.bottom):
+                    print("You cannot jump over a wall!")
+                    return False
 
-        # Straight movement
+            # Top-Right
+            elif new_pos[1] > prev_pos[1]:
+                if old_square.top_rigt() or new_square.bottom_left() or \
+                        (old_square.right and new_square.left) or (old_square.top and new_square.bottom):
+                    print("You cannot jump over a wall!")
+                    return False
+
+            else:
+                # Top-Middle
+                if prev_pos[0] - new_pos[0] == 1:
+                    if new_square.bottom:
+                        print("You cannot jump over a wall!")
+                        return False
+                    elif new_square.starting is not None:
+                        pass
+                    elif new_square.top:
+                        print("You cannot jump just one space forward!")
+                        return False
+                    elif new_pos[0] == 0 or (board.board[new_pos[0] - 1][new_pos[1]].center != 'X' and
+                                             board.board[new_pos[0] - 1][new_pos[1]].center != 'O'):
+                        print("You cannot jump just one space forward!")
+                        return False
+
+                # Top-Middle-Long
+                else:
+                    if new_square.bottom or old_square.top:
+                        print("You cannot jump over a wall!")
+                        return False
+
+        # Bottom
+        elif new_pos[0] > prev_pos[1]:
+            # Bottom-Left
+            if new_pos[1] < prev_pos[1]:
+                if old_square.bottom_left() or new_square.top_right() or \
+                        (old_square.bottom and new_square.top) or (old_square.left and new_square.right):
+                    print("You cannot jump over a wall!")
+                    return False
+
+            # Bottom-Right
+            elif new_pos[1] > prev_pos[1]:
+                if old_square.bottom_right() or new_square.top_left() or \
+                        (old_square.bottom and new_square.top) or (old_square.right and new_square.left):
+                    print("You cannot jump over a wall!")
+                    return False
+
+            else:
+                # Bottom-Middle
+                if new_pos[0] - prev_pos[0] == 1:
+                    if new_square.top:
+                        print("You cannot jump over a wall!")
+                        return False
+                    elif new_square.starting is not None:
+                        pass
+                    elif new_square.bottom:
+                        print("You cannot jump just one space forward!")
+                        return False
+                    elif new_pos[0] == board.rows - 1 or (board.board[new_pos[0] + 1][new_pos[1]].center != 'X' and
+                                                          board.board[new_pos[0] + 1][new_pos[1]].center != 'O'):
+                        print("You cannot jump just one space forward!")
+                        return False
+
+                # Bottom-Middle-Long
+                else:
+                    if new_square.top or old_square.bottom:
+                        print("You cannot jump over a wall!")
+                        return False
+
+        elif new_pos[1] > prev_pos[1]:
+            # Middle-Right
+            if new_pos[1] - prev_pos[1] == 1:
+                if new_square.left:
+                    print("You cannot jump over a wall!")
+                    return False
+                elif new_square.starting is not None:
+                    pass
+                elif new_square.right:
+                    print("You cannot jump just one space forward!")
+                    return False
+                elif new_pos[1] == board.columns - 1 or (board.board[new_pos[0]][new_pos[1] + 1].center != 'X' and
+                                                         board.board[new_pos[0]][new_pos[1] + 1].center != 'O'):
+                    print("You cannot jump just one space forward!")
+                    return False
+
+            # Middle-Right-Long
+            else:
+                if new_square.left or old_square.right:
+                    print("You cannot jump over a wall!")
+                    return False
+
         else:
-            pass
+            # Middle-Left
+            if prev_pos[1] - new_pos[1] == 1:
+                if new_square.right:
+                    print("You cannot jump over a wall!")
+                    return False
+                elif new_square.starting is not None:
+                    pass
+                elif new_square.left:
+                    print("You cannot jump just one space forward!")
+                    return False
+                elif new_pos[1] == 0 or (board.board[new_pos[0]][new_pos[1] - 1].center != 'X' and
+                                         board.board[new_pos[0]][new_pos[1] - 1].center != 'O'):
+                    print("You cannot jump just one space forward!")
+                    return False
+
+            # Middle-Left-Long
+            else:
+                if new_square.right or old_square.left:
+                    print("You cannot jump over a wall!")
+                    return False
 
         return True
 
@@ -97,10 +208,8 @@ class Player:
             print("Wall indices out of bound!")
             return False
 
-        if (wall == 'Z' and (board.board[row][column].right is not None or
-                             board.board[row + 1][column].right is not None)) or \
-                (wall == 'P' and (board.board[row][column].bottom is not None or
-                                  board.board[row][column + 1].bottom is not None)):
+        if (wall == 'Z' and (board.board[row][column].right or board.board[row + 1][column].right)) or \
+                (wall == 'P' and (board.board[row][column].bottom or board.board[row][column + 1].bottom)):
             print("A wall already exists on those coordinates!")
             return False
 
@@ -121,9 +230,32 @@ class Human(Player):
     def __init__(self, player, pawns, walls):
         super().__init__(player, pawns, walls)
 
+    # Inputs the move from the user, validates it and packs it into the following format:
+    # ((player, player_pawn, new_row, new_col), optional(wall_type, row, col))
     def get_move(self, board):
         move = None
         while not self.valid_move(board, move):
             move = input("Enter the move: ")
 
-        # TODO: Return a move
+        # Extract the move information from the string and send it
+        return (
+                    (
+                        move[1],
+                        int(move[3]),
+                        (board.board_index_to_matrix_index(move[7]), board.board_index_to_matrix_index(move[9]))
+                    )
+                ) \
+            if len(move) == 11 else \
+            (
+                (
+                    move[1],
+                    int(move[3]),
+                    board.board_index_to_matrix_index(move[7]),
+                    board.board_index_to_matrix_index(move[9])
+                ),
+                (
+                    move[13],
+                    board.board_index_to_matrix_index(move[15]),
+                    board.board_index_to_matrix_index(move[17])
+                )
+             )
