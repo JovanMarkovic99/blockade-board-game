@@ -56,6 +56,7 @@ class Game:
             self.play_move(current_player.get_move(self.board))
 
         current_player.print_winner(moves)
+        self.board.print_board()
 
     def play_move(self, move):
         # TODO: Remove when the computer returns a move
