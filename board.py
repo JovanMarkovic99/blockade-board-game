@@ -74,8 +74,8 @@ class BoardSquare:
         self.starting = None
 
     def set_start(self, player):
-        self.starting = player
         self.center = player
+        self.starting = player
 
     def top_left(self):
         return self.top and self.left

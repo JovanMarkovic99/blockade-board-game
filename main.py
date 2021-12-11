@@ -41,9 +41,9 @@ class Game:
 
     # Actual game logic
     def run(self):
-        moves = 0
-        current_player = None
         player_cycle = cycle((self.player_1, self.player_2))
+        current_player = None
+        moves = 0
 
         while not self.game_end():
             current_player = next(player_cycle)
@@ -55,42 +55,46 @@ class Game:
 
             self.play_move(current_player.get_move(self.board))
 
-        current_player.print_winner(moves)
         self.board.print_board()
+        current_player.print_winner(moves)
 
     def play_move(self, move):
         # TODO: Remove when the computer returns a move
         if move is None:
             return
 
+        player = move[0][0]
+        pawn_index = move[0][1]
         old_pos = None
         new_pos = (move[0][2], move[0][3])
 
         # Update pawn position
-        if move[0][0] == 'X':
-            old_pos = (self.player_1_pawns[move[0][1] - 1][0], self.player_1_pawns[move[0][1] - 1][1])
-            self.player_1_pawns[move[0][1] - 1][0], self.player_1_pawns[move[0][1] - 1][1] = new_pos[0], new_pos[1]
+        if player == 'X':
+            old_pos = (self.player_1_pawns[pawn_index][0], self.player_1_pawns[pawn_index][1])
+            self.player_1_pawns[pawn_index][0], self.player_1_pawns[pawn_index][1] = new_pos[0], new_pos[1]
         else:
-            old_pos = (self.player_2_pawns[move[0][1] - 1][0], self.player_2_pawns[move[0][1] - 1][1])
-            self.player_2_pawns[move[0][1] - 1][0], self.player_2_pawns[move[0][1] - 1][1] = new_pos[0], new_pos[1]
+            old_pos = (self.player_2_pawns[pawn_index][0], self.player_2_pawns[pawn_index][1])
+            self.player_2_pawns[pawn_index][0], self.player_2_pawns[pawn_index][1] = new_pos[0], new_pos[1]
 
         # Update board
         self.board.board[old_pos[0]][old_pos[1]].center = \
             ' ' if self.board.board[old_pos[0]][old_pos[1]].starting is None else '·'
-        self.board.board[new_pos[0]][new_pos[1]].center = move[0][0]
+        self.board.board[new_pos[0]][new_pos[1]].center = player
 
         # Update board walls
         if len(move) == 2:
+            wall_row, wall_column = move[1][1], move[1][2]
+
             if move[1][0] == 'Z':
-                self.board.board[move[1][1]][move[1][2]].right = True
-                self.board.board[move[1][1]][move[1][2] + 1].left = True
-                self.board.board[move[1][1] + 1][move[1][2]].right = True
-                self.board.board[move[1][1] + 1][move[1][2] + 1].left = True
+                self.board.board[wall_row][wall_column].right = True
+                self.board.board[wall_row][wall_column + 1].left = True
+                self.board.board[wall_row + 1][wall_column].right = True
+                self.board.board[wall_row + 1][wall_column + 1].left = True
             else:
-                self.board.board[move[1][1]][move[1][2]].bottom = True
-                self.board.board[move[1][1]][move[1][2] + 1].bottom = True
-                self.board.board[move[1][1] + 1][move[1][2]].top = True
-                self.board.board[move[1][1] + 1][move[1][2] + 1].top = True
+                self.board.board[wall_row][wall_column].bottom = True
+                self.board.board[wall_row][wall_column + 1].bottom = True
+                self.board.board[wall_row + 1][wall_column].top = True
+                self.board.board[wall_row + 1][wall_column + 1].top = True
 
     def game_end(self):
         return any(map(lambda square: (square.starting == 'O' and square.center == 'X') or
@@ -225,12 +229,11 @@ class Game:
 
     @staticmethod
     def handle_interrupt(signum, frame):
-        if Game.yes_no_prompt("Are you sure you want to quit?"):
-            exit()
+        exit()
 
     @staticmethod
     def yes_no_prompt(message):
-        res = input(message + " (y/n) \n")
+        res = input(message + " (y/n) ")
 
         while True:
             if res.lower() == "y":

@@ -26,15 +26,14 @@ class Player:
         if move is None:
             return False
 
-        # Strip trailing and leading spaces and check the format
-        move = move.strip()
+        # Check the format
         if not fullmatch("\[[XO] [12]] \[[1-9A-Z] [1-9A-Z]]?( \[[ZP] [1-9A-Z] [1-9A-Z]])", move):
             print("Invalid format! Input must be of [X/O 1/2] [new_row new_column] ([Z/P row column])")
             return False
 
         return \
-            self.valid_pawn_move(board, move[1], int(move[3]), (board.board_index_to_matrix_index(move[7]),
-                                                                board.board_index_to_matrix_index(move[9]))) \
+            self.valid_pawn_move(board, move[1], int(move[3]) - 1, (board.board_index_to_matrix_index(move[7]),
+                                                                    board.board_index_to_matrix_index(move[9]))) \
             and \
             (self.valid_wall_placement(board) if len(move) == 11 else self.valid_wall_placement(board, move[13],
                                                                                                 (
@@ -48,22 +47,19 @@ class Player:
             print("You cannot move your opponents pawns!")
             return False
 
-        # Out of bounds
         if new_pos[0] >= board.rows or new_pos[1] >= board.columns:
-            print("Pawn indices out of bound!")
+            print("Pawn indices are out of bounds!")
             return False
 
-        prev_pos = self.pawns[pawn - 1]
+        prev_pos = self.pawns[pawn]
         old_square = board.board[prev_pos[0]][prev_pos[1]]
         new_square = board.board[new_pos[0]][new_pos[1]]
 
-        # Unsupported movement
         if abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] - new_pos[1]) == 0 or \
                 abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] - new_pos[1]) > 2:
             print("You cannot stay in place or move more than two squares from you current position!")
             return False
 
-        # Pawn is on the new square
         if (new_square.center == 'X' or new_square.center == 'O') and \
                 (new_square.starting is None or new_square.starting == player):
             print("You cannot jump to a square with a pawn!")
@@ -108,7 +104,7 @@ class Player:
                         return False
 
         # Bottom
-        elif new_pos[0] > prev_pos[1]:
+        elif new_pos[0] > prev_pos[0]:
             # Bottom-Left
             if new_pos[1] < prev_pos[1]:
                 if old_square.bottom_left() or new_square.top_right() or \
@@ -233,15 +229,16 @@ class Human(Player):
     # Inputs the move from the user, validates it and packs it into the following format:
     # ((player, player_pawn, new_row, new_col), optional(wall_type, row, col))
     def get_move(self, board):
+        # Ask for input until the move is valid
         move = None
         while not self.valid_move(board, move):
-            move = input("Enter the move: ")
+            move = input("Enter the move: ").strip()
 
         # Extract the move information from the string and send it
         return (
                     (
                         move[1],
-                        int(move[3]),
+                        int(move[3]) - 1,
                         (board.board_index_to_matrix_index(move[7]), board.board_index_to_matrix_index(move[9]))
                     )
                 ) \
@@ -249,7 +246,7 @@ class Human(Player):
             (
                 (
                     move[1],
-                    int(move[3]),
+                    int(move[3]) - 1,
                     board.board_index_to_matrix_index(move[7]),
                     board.board_index_to_matrix_index(move[9])
                 ),
