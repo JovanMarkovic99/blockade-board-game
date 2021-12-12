@@ -63,38 +63,38 @@ class Game:
         if move is None:
             return
 
-        player = move[0][0]
+        player = self.player_1 if move[0][0] == 'X' else self.player_2
         pawn_index = move[0][1]
-        old_pos = None
         new_pos = (move[0][2], move[0][3])
+        old_pos = (player.pawns[pawn_index][0], player.pawns[pawn_index][1])
 
         # Update pawn position
-        if player == 'X':
-            old_pos = (self.player_1_pawns[pawn_index][0], self.player_1_pawns[pawn_index][1])
-            self.player_1_pawns[pawn_index][0], self.player_1_pawns[pawn_index][1] = new_pos[0], new_pos[1]
-        else:
-            old_pos = (self.player_2_pawns[pawn_index][0], self.player_2_pawns[pawn_index][1])
-            self.player_2_pawns[pawn_index][0], self.player_2_pawns[pawn_index][1] = new_pos[0], new_pos[1]
+        player.pawns[pawn_index][0], player.pawns[pawn_index][1] = new_pos[0], new_pos[1]
 
         # Update board
         self.board.board[old_pos[0]][old_pos[1]].center = \
             ' ' if self.board.board[old_pos[0]][old_pos[1]].starting is None else '·'
-        self.board.board[new_pos[0]][new_pos[1]].center = player
+        self.board.board[new_pos[0]][new_pos[1]].center = move[0][0]
 
-        # Update board walls
+        # Update player walls and board walls
         if len(move) == 2:
-            wall_row, wall_column = move[1][1], move[1][2]
 
+            wall_row, wall_column = move[1][1], move[1][2]
+            # Vertical walls
             if move[1][0] == 'Z':
                 self.board.board[wall_row][wall_column].right = True
                 self.board.board[wall_row][wall_column + 1].left = True
                 self.board.board[wall_row + 1][wall_column].right = True
                 self.board.board[wall_row + 1][wall_column + 1].left = True
+                player.vertical_walls -= 1
+
+            # Horizontal walls
             else:
                 self.board.board[wall_row][wall_column].bottom = True
                 self.board.board[wall_row][wall_column + 1].bottom = True
                 self.board.board[wall_row + 1][wall_column].top = True
                 self.board.board[wall_row + 1][wall_column + 1].top = True
+                player.horizontal_walls -= 1
 
     def game_end(self):
         return any(map(lambda square: (square.starting == 'O' and square.center == 'X') or
