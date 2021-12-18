@@ -1,12 +1,24 @@
+from itertools import chain
+from copy import deepcopy
+
+
 class Board:
     def __init__(self, rows, columns, player_1_pawns, player_2_pawns):
         self.rows = rows
         self.columns = columns
+        self.player_1_pawns = deepcopy(player_1_pawns)
+        self.player_2_pawns = deepcopy(player_2_pawns)
+
         self.board = [[BoardSquare() for _ in range(columns)] for _ in range(rows)]
         self.board[player_1_pawns[0][0]][player_1_pawns[0][1]].set_start('X')
         self.board[player_1_pawns[1][0]][player_1_pawns[1][1]].set_start('X')
         self.board[player_2_pawns[0][0]][player_2_pawns[0][1]].set_start('O')
         self.board[player_2_pawns[1][0]][player_2_pawns[1][1]].set_start('O')
+
+    def game_end(self):
+        return any(map(lambda square: (square.starting == 'O' and square.center == 'X') or
+                                      (square.starting == 'X' and square.center == 'O'),
+                       chain(*iter(self.board))))
 
     def print_board(self):
         for i in range(2 * self.rows + 3):
