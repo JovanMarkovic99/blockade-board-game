@@ -1,6 +1,7 @@
 from re import fullmatch
 from copy import deepcopy
 from itertools import product
+from random import choice
 
 
 class Player:
@@ -30,10 +31,6 @@ class Player:
     # move = ((player, player_pawn, new_row, new_col), optional(wall_type, row, col))
     def play_move(self, board, move, update_walls=True):
         new_board = deepcopy(board)
-
-        # TODO: Remove after adding a computer move
-        if move is None:
-            return new_board
 
         # Update player pawn and board
         player = move[0][0]
@@ -279,13 +276,16 @@ class Computer(Player):
         super().__init__(player, walls)
 
     def get_move(self, board):
-        pass
+        return choice(self.legal_board_moves(board))
 
     def next_legal_board_states(self, board):
-        pass
+        return map(lambda move: self.play_move(board, move, update_walls=False), self.legal_board_moves(board))
 
     def legal_board_moves(self, board):
-        pass
+        if self.vertical_walls > 0 or self.horizontal_walls > 0:
+            return tuple(product(self.legal_pawn_moves(board), self.legal_wall_placements(board)))
+        else:
+            return tuple(self.legal_pawn_moves(board))
 
     def legal_pawn_moves(self, board):
         pawns = board.player_1_pawns if self.player == 'X' else board.player_2_pawns
@@ -311,7 +311,19 @@ class Computer(Player):
         return legal_moves
 
     def legal_wall_placements(self, board):
-        pass
+        legal_moves = []
+
+        for row in range(board.rows - 1):
+            for column in range(board.columns - 1):
+                if self.vertical_walls > 0:
+                    if self.valid_wall_placement(board, 'Z', (row, column), output=False):
+                        legal_moves.append(('Z', row, column))
+
+                if self.horizontal_walls > 0:
+                    if self.valid_wall_placement(board, 'P', (row, column), output=False):
+                        legal_moves.append(('P', row, column))
+
+        return legal_moves
 
 
 class Human(Player):
