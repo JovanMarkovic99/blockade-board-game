@@ -1,5 +1,6 @@
 from re import fullmatch
 from copy import deepcopy
+from itertools import product
 
 
 class Player:
@@ -38,15 +39,15 @@ class Player:
         player = move[0][0]
         pawn_index = move[0][1]
         new_row, new_col = move[0][2], move[0][3]
-        player_pawn = board.player_1_pawns[pawn_index] if player == 'X' else board.player_2_pawns[pawn_index]
+        player_pawns = new_board.player_1_pawns if player == 'X' else new_board.player_2_pawns
 
         # Update board
-        new_board.board[player_pawn[0]][player_pawn[1]].center = \
-            ' ' if new_board.board[player_pawn[0]][player_pawn[1]].starting is None else '·'
+        new_board.board[player_pawns[pawn_index][0]][player_pawns[pawn_index][1]].center = \
+            ' ' if new_board.board[player_pawns[pawn_index][0]][player_pawns[pawn_index][1]].starting is None else '·'
         new_board.board[new_row][new_col].center = player
 
         # Update pawn position
-        player_pawn[0], player_pawn[1] = new_row, new_col
+        player_pawns[pawn_index][0], player_pawns[pawn_index][1] = new_row, new_col
 
         # Update player walls and board walls
         if len(move) == 2:
@@ -94,13 +95,13 @@ class Player:
                                                                                                 )
              )
 
-    def valid_pawn_move(self, board, player, pawn, new_pos):
+    def valid_pawn_move(self, board, player, pawn, new_pos, output=True):
         if player != self.player:
-            print("You cannot move your opponents pawns!")
+            self.conditional_print("You cannot move your opponents pawns!", output)
             return False
 
         if new_pos[0] >= board.rows or new_pos[1] >= board.columns:
-            print("Pawn indices are out of bounds!")
+            self.conditional_print("Pawn indices are out of bounds!", output)
             return False
 
         prev_pos = board.player_1_pawns[pawn] if player == 'X' else board.player_2_pawns[pawn]
@@ -109,12 +110,13 @@ class Player:
 
         if abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] - new_pos[1]) == 0 or \
                 abs(prev_pos[0] - new_pos[0]) + abs(prev_pos[1] - new_pos[1]) > 2:
-            print("You cannot stay in place or move more than two squares from you current position!")
+            self.conditional_print("You cannot stay in place or move more than two squares from you current position!",
+                                   output)
             return False
 
         if (new_square.center == 'X' or new_square.center == 'O') and \
                 (new_square.starting is None or new_square.starting == player):
-            print("You cannot jump to a square with a pawn!")
+            self.conditional_print("You cannot jump to a square with a pawn!", output)
             return False
 
         # Top
@@ -123,36 +125,36 @@ class Player:
             if new_pos[1] < prev_pos[1]:
                 if old_square.top_left() or new_square.bottom_right() or \
                         (old_square.left and new_square.right) or (old_square.top and new_square.bottom):
-                    print("You cannot jump over a wall!")
+                    self.conditional_print("You cannot jump over a wall!", output)
                     return False
 
             # Top-Right
             elif new_pos[1] > prev_pos[1]:
-                if old_square.top_rigt() or new_square.bottom_left() or \
+                if old_square.top_right() or new_square.bottom_left() or \
                         (old_square.right and new_square.left) or (old_square.top and new_square.bottom):
-                    print("You cannot jump over a wall!")
+                    self.conditional_print("You cannot jump over a wall!", output)
                     return False
 
             else:
                 # Top-Middle
                 if prev_pos[0] - new_pos[0] == 1:
                     if new_square.bottom:
-                        print("You cannot jump over a wall!")
+                        self.conditional_print("You cannot jump over a wall!", output)
                         return False
                     elif new_square.starting is not None:
                         pass
                     elif new_square.top:
-                        print("You cannot jump just one space forward!")
+                        self.conditional_print("You cannot jump just one space forward!", output)
                         return False
                     elif new_pos[0] == 0 or (board.board[new_pos[0] - 1][new_pos[1]].center != 'X' and
                                              board.board[new_pos[0] - 1][new_pos[1]].center != 'O'):
-                        print("You cannot jump just one space forward!")
+                        self.conditional_print("You cannot jump just one space forward!", output)
                         return False
 
                 # Top-Middle-Long
                 else:
                     if new_square.bottom or old_square.top:
-                        print("You cannot jump over a wall!")
+                        self.conditional_print("You cannot jump over a wall!", output)
                         return False
 
         # Bottom
@@ -161,109 +163,115 @@ class Player:
             if new_pos[1] < prev_pos[1]:
                 if old_square.bottom_left() or new_square.top_right() or \
                         (old_square.bottom and new_square.top) or (old_square.left and new_square.right):
-                    print("You cannot jump over a wall!")
+                    self.conditional_print("You cannot jump over a wall!", output)
                     return False
 
             # Bottom-Right
             elif new_pos[1] > prev_pos[1]:
                 if old_square.bottom_right() or new_square.top_left() or \
                         (old_square.bottom and new_square.top) or (old_square.right and new_square.left):
-                    print("You cannot jump over a wall!")
+                    self.conditional_print("You cannot jump over a wall!", output)
                     return False
 
             else:
                 # Bottom-Middle
                 if new_pos[0] - prev_pos[0] == 1:
                     if new_square.top:
-                        print("You cannot jump over a wall!")
+                        self.conditional_print("You cannot jump over a wall!", output)
                         return False
                     elif new_square.starting is not None:
                         pass
                     elif new_square.bottom:
-                        print("You cannot jump just one space forward!")
+                        self.conditional_print("You cannot jump just one space forward!", output)
                         return False
                     elif new_pos[0] == board.rows - 1 or (board.board[new_pos[0] + 1][new_pos[1]].center != 'X' and
                                                           board.board[new_pos[0] + 1][new_pos[1]].center != 'O'):
-                        print("You cannot jump just one space forward!")
+                        self.conditional_print("You cannot jump just one space forward!", output)
                         return False
 
                 # Bottom-Middle-Long
                 else:
                     if new_square.top or old_square.bottom:
-                        print("You cannot jump over a wall!")
+                        self.conditional_print("You cannot jump over a wall!", output)
                         return False
 
         elif new_pos[1] > prev_pos[1]:
             # Middle-Right
             if new_pos[1] - prev_pos[1] == 1:
                 if new_square.left:
-                    print("You cannot jump over a wall!")
+                    self.conditional_print("You cannot jump over a wall!", output)
                     return False
                 elif new_square.starting is not None:
                     pass
                 elif new_square.right:
-                    print("You cannot jump just one space forward!")
+                    self.conditional_print("You cannot jump just one space forward!", output)
                     return False
                 elif new_pos[1] == board.columns - 1 or (board.board[new_pos[0]][new_pos[1] + 1].center != 'X' and
                                                          board.board[new_pos[0]][new_pos[1] + 1].center != 'O'):
-                    print("You cannot jump just one space forward!")
+                    self.conditional_print("You cannot jump just one space forward!", output)
                     return False
 
             # Middle-Right-Long
             else:
                 if new_square.left or old_square.right:
-                    print("You cannot jump over a wall!")
+                    self.conditional_print("You cannot jump over a wall!", output)
                     return False
 
         else:
             # Middle-Left
             if prev_pos[1] - new_pos[1] == 1:
                 if new_square.right:
-                    print("You cannot jump over a wall!")
+                    self.conditional_print("You cannot jump over a wall!", output)
                     return False
                 elif new_square.starting is not None:
                     pass
                 elif new_square.left:
-                    print("You cannot jump just one space forward!")
+                    self.conditional_print("You cannot jump just one space forward!", output)
                     return False
                 elif new_pos[1] == 0 or (board.board[new_pos[0]][new_pos[1] - 1].center != 'X' and
                                          board.board[new_pos[0]][new_pos[1] - 1].center != 'O'):
-                    print("You cannot jump just one space forward!")
+                    self.conditional_print("You cannot jump just one space forward!", output)
                     return False
 
             # Middle-Left-Long
             else:
                 if new_square.right or old_square.left:
-                    print("You cannot jump over a wall!")
+                    self.conditional_print("You cannot jump over a wall!", output)
                     return False
 
         return True
 
-    def valid_wall_placement(self, board, wall=None, pos=None):
+    def valid_wall_placement(self, board, wall=None, pos=None, output=True):
         if wall is None:
             if self.vertical_walls > 0 or self.horizontal_walls > 0:
-                print("You must place a wall!")
+                self.conditional_print("You must place a wall!", output)
                 return False
             else:
                 return True
 
         if (wall == 'Z' and self.vertical_walls == 0) or (wall == 'P' and self.horizontal_walls == 0):
-            print("There are no more walls of that type to place!")
+            self.conditional_print("There are no more walls of that type to place!", output)
             return False
 
         row, column = pos[0], pos[1]
         if row >= board.rows - 1 or column >= board.columns - 1:
-            print("Wall indices out of bound!")
+            self.conditional_print("Wall indices out of bound!", output)
             return False
 
         if (wall == 'Z' and (board.board[row][column].right or board.board[row + 1][column].right)) or \
                 (wall == 'P' and (board.board[row][column].bottom or board.board[row][column + 1].bottom)):
-            print("A wall already exists on those coordinates!")
+            self.conditional_print("A wall already exists on those coordinates!", output)
             return False
 
         # TODO: Add check for a path existing to the initial pawns
 
         return True
+
+    # Helper method for printing a message if a condition is true
+    @staticmethod
+    def conditional_print(message, condition):
+        if condition:
+            print(message)
 
 
 class Computer(Player):
@@ -271,6 +279,38 @@ class Computer(Player):
         super().__init__(player, walls)
 
     def get_move(self, board):
+        pass
+
+    def next_legal_board_states(self, board):
+        pass
+
+    def legal_board_moves(self, board):
+        pass
+
+    def legal_pawn_moves(self, board):
+        pawns = board.player_1_pawns if self.player == 'X' else board.player_2_pawns
+
+        # All pawn offsets in every direction, calculated with the code below then manually added for efficiency
+        # pawn_offset_permutations = tuple(filter(lambda offset: 0 <= abs(offset[0]) + abs(offset[1]) <= 2,
+        #                                  product((-2, -1, 0, 1, 2), (-2, -1, 0, 1, 2))))
+        pawn_offset_permutations = ((-2, 0), (-1, -1), (-1, 0), (-1, 1), (0, -2), (0, -1), (0, 0), (0, 1), (0, 2),
+                                    (1, -1), (1, 0), (1, 1), (2, 0))
+
+        # Check which permutations make legal moves
+        legal_moves = []
+        for pawn_index in range(2):
+            for row_offset, column_offset in pawn_offset_permutations:
+                new_row, new_col = pawns[pawn_index][0] + row_offset, pawns[pawn_index][1] + column_offset
+
+                # Instead of recalling the function, if needed, this can be optimized by checking the squares around the
+                # pawn and adding the appropriate moves, which would effectively be the same as calling this function
+                # twice, once for both pawns, instead of recalling it for every potential legal move.
+                if self.valid_pawn_move(board, self.player, pawn_index, (new_row, new_col), output=False):
+                    legal_moves.append((self.player, pawn_index, new_row, new_col))
+
+        return legal_moves
+
+    def legal_wall_placements(self, board):
         pass
 
 
