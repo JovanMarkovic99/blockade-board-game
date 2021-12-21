@@ -67,6 +67,11 @@ class Board:
                        chain(*iter(self.board))))
 
     def valid_pawn_move(self, player, pawn_index, row, column, print_failure=True):
+        # Check if pawn indices are in range
+        if row >= self.rows or column >= self.columns:
+            self.conditional_print("Pawn indices are out of bounds!")
+            return False
+
         prev_pos = self.player_1_pawns[pawn_index] if player == 'X' else self.player_2_pawns[pawn_index]
         old_square = self.board[prev_pos[0]][prev_pos[1]]
         new_square = self.board[row][column]
@@ -205,6 +210,11 @@ class Board:
         return True
 
     def valid_wall_placement(self, wall_type, row, column, print_failure=True):
+        # Check if wall indices are in range
+        if row >= self.rows - 1 or column >= self.columns - 1:
+            self.conditional_print("Wall indices out of bound!")
+            return False
+
         if (wall_type == 'Z' and (self.board[row][column].right or self.board[row + 1][column].right)) or \
                 (wall_type == 'P' and (self.board[row][column].bottom or self.board[row][column + 1].bottom)):
             self.conditional_print("A wall already exists on those coordinates!", print_failure)

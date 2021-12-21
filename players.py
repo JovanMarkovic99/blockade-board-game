@@ -161,11 +161,6 @@ class Human(Player):
             print("You cannot move your opponents pawns!")
             return False
 
-        # Check if pawn indices are in range
-        if pawn_row >= board.rows or pawn_column >= board.columns:
-            print("Pawn indices are out of bounds!")
-            return False
-
         # Check pawn move
         if not board.valid_pawn_move(player, pawn_index, pawn_row, pawn_column):
             return False
@@ -174,11 +169,6 @@ class Human(Player):
             # Check if the player has the wall type
             if (wall_type == 'Z' and self.vertical_walls == 0) or (wall_type == 'P' and self.horizontal_walls == 0):
                 print("There are no more walls of that type to place!")
-                return False
-
-            # Check if wall indices are in range
-            if wall_row >= board.rows - 1 or wall_column >= board.columns - 1:
-                print("Wall indices out of bound!")
                 return False
 
             # Check wall placement
