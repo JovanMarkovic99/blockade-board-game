@@ -3,6 +3,8 @@ from copy import deepcopy
 from itertools import product
 from random import choice
 
+from board import Board
+
 
 class Player:
     def __init__(self, player, walls):
@@ -28,7 +30,6 @@ class Player:
 
     # Plays the move and updates the number of player walls if update_walls is True,
     # afterwards returns the new board state
-    # move = ((player, player_pawn, new_row, new_col), optional(wall_type, row, col))
     def play_move(self, board, move, update_walls=True):
         new_board = deepcopy(board)
 
@@ -139,19 +140,10 @@ class Human(Player):
         while not self.valid_move(board, move):
             move = input("Enter the move: ").strip()
 
-        # Extract the move information from the string and send it
-        player = move[1]
-        player_index = int(move[3]) - 1
-        pawn_row, pawn_column = board.board_index_to_matrix_index(move[7]), board.board_index_to_matrix_index(move[9])
+        player, pawn_index, pawn_row, pawn_column, wall_type, wall_row, wall_column = self.extract_move_info(move)
 
-        if len(move) == 1:
-            return player, player_index, (pawn_row, pawn_column)
-        else:
-            wall_type = move[13]
-            wall_row = board.board_index_to_matrix_index(move[15])
-            wall_column = board.board_index_to_matrix_index(move[17])
-
-            return (player, player_index, pawn_row, pawn_column), (wall_type, wall_row, wall_column)
+        return ((player, pawn_index, pawn_row, pawn_column), ) if wall_type is None else \
+               (player, pawn_index, pawn_row, pawn_column), (wall_type, wall_row, wall_column)
 
     def valid_move(self, board, move):
         if move is None:
@@ -162,12 +154,10 @@ class Human(Player):
             print("Invalid format! Input must be of [X/O 1/2] [new_row new_column] ([Z/P row column])")
             return False
 
-        player = move[1]
-        pawn_index = int(move[3]) - 1
-        pawn_row, pawn_column = board.board_index_to_matrix_index(move[7]), board.board_index_to_matrix_index(move[9])
+        player, pawn_index, pawn_row, pawn_column, wall_type, wall_row, wall_column = self.extract_move_info(move)
 
         # Check the player
-        if move[1] != self.player:
+        if player != self.player:
             print("You cannot move your opponents pawns!")
             return False
 
@@ -180,11 +170,7 @@ class Human(Player):
         if not board.valid_pawn_move(player, pawn_index, pawn_row, pawn_column):
             return False
 
-        if len(move) != 11:
-            wall_type = move[13]
-            wall_row = board.board_index_to_matrix_index(move[15])
-            wall_column = board.board_index_to_matrix_index(move[17])
-
+        if wall_type is not None:
             # Check if the player has the wall type
             if (wall_type == 'Z' and self.vertical_walls == 0) or (wall_type == 'P' and self.horizontal_walls == 0):
                 print("There are no more walls of that type to place!")
@@ -207,3 +193,20 @@ class Human(Player):
             return False
 
         return True
+
+    # Move must be of "[X/O 1/2] [new_row new_column] ([Z/P row column]" format
+    # Returns player, pawn_index, pawn_row, pawn_column, wall_type, wall_row, wall_column
+    @staticmethod
+    def extract_move_info(move):
+        player = move[1]
+        pawn_index = int(move[3]) - 1
+        pawn_row, pawn_column = Board.board_index_to_matrix_index(move[7]), Board.board_index_to_matrix_index(move[9])
+        wall_type = None
+        wall_row, wall_column = None, None
+
+        if len(move) != 11:
+            wall_type = move[13]
+            wall_row = Board.board_index_to_matrix_index(move[15])
+            wall_column = Board.board_index_to_matrix_index(move[17])
+
+        return player, pawn_index, pawn_row, pawn_column, wall_type, wall_row, wall_column
