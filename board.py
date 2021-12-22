@@ -1,4 +1,3 @@
-from itertools import chain
 from copy import deepcopy
 
 
@@ -8,6 +7,8 @@ class Board:
         self.columns = columns
         self.player_1_pawns = deepcopy(player_1_pawns)
         self.player_2_pawns = deepcopy(player_2_pawns)
+        self.player_1_start = tuple(player_1_pawns)
+        self.player_2_start = tuple(player_2_pawns)
 
         self.board = [[BoardSquare() for _ in range(columns)] for _ in range(rows)]
         self.board[player_1_pawns[0][0]][player_1_pawns[0][1]].set_start('X')
@@ -62,14 +63,13 @@ class Board:
             print()
 
     def game_end(self):
-        return any(map(lambda square: (square.starting == 'O' and square.center == 'X') or
-                                      (square.starting == 'X' and square.center == 'O'),
-                       chain(*iter(self.board))))
+        return self.player_1_pawns[0] in self.player_2_start or self.player_1_pawns[1] in self.player_2_start or \
+               self.player_2_pawns[0] in self.player_1_start or self.player_2_pawns[1] in self.player_1_start
 
     def valid_pawn_move(self, player, pawn_index, row, column, print_failure=True):
         # Check if pawn indices are in range
         if row >= self.rows or column >= self.columns:
-            self.conditional_print("Pawn indices are out of bounds!")
+            self.conditional_print("Pawn indices are out of bounds!", print_failure)
             return False
 
         prev_pos = self.player_1_pawns[pawn_index] if player == 'X' else self.player_2_pawns[pawn_index]
@@ -109,7 +109,7 @@ class Board:
                     if new_square.bottom:
                         self.conditional_print("You cannot jump over a wall!", print_failure)
                         return False
-                    elif new_square.starting is not None:
+                    elif new_square.starting is not None and new_square.starting != player:
                         pass
                     elif new_square.top:
                         self.conditional_print("You cannot jump just one space forward!", print_failure)
@@ -147,7 +147,7 @@ class Board:
                     if new_square.top:
                         self.conditional_print("You cannot jump over a wall!", print_failure)
                         return False
-                    elif new_square.starting is not None:
+                    elif new_square.starting is not None and new_square.starting != player:
                         pass
                     elif new_square.bottom:
                         self.conditional_print("You cannot jump just one space forward!", print_failure)
@@ -169,7 +169,7 @@ class Board:
                 if new_square.left:
                     self.conditional_print("You cannot jump over a wall!", print_failure)
                     return False
-                elif new_square.starting is not None:
+                elif new_square.starting is not None and new_square.starting != player:
                     pass
                 elif new_square.right:
                     self.conditional_print("You cannot jump just one space forward!", print_failure)
@@ -191,7 +191,7 @@ class Board:
                 if new_square.right:
                     self.conditional_print("You cannot jump over a wall!", print_failure)
                     return False
-                elif new_square.starting is not None:
+                elif new_square.starting is not None and new_square.starting != player:
                     pass
                 elif new_square.left:
                     self.conditional_print("You cannot jump just one space forward!", print_failure)
@@ -209,10 +209,21 @@ class Board:
 
         return True
 
+    def move_pawn(self, player, pawn_index, row, column):
+        player_pawns = self.player_1_pawns if player == 'X' else self.player_2_pawns
+
+        # Update board
+        self.board[player_pawns[pawn_index][0]][player_pawns[pawn_index][1]].center = \
+            ' ' if self.board[player_pawns[pawn_index][0]][player_pawns[pawn_index][1]].starting is None else '·'
+        self.board[row][column].center = player
+
+        # Update pawn position
+        player_pawns[pawn_index][0], player_pawns[pawn_index][1] = row, column
+
     def valid_wall_placement(self, wall_type, row, column, print_failure=True):
         # Check if wall indices are in range
         if row >= self.rows - 1 or column >= self.columns - 1:
-            self.conditional_print("Wall indices out of bound!")
+            self.conditional_print("Wall indices out of bound!", print_failure)
             return False
 
         if (wall_type == 'Z' and (self.board[row][column].right or self.board[row + 1][column].right)) or \
@@ -221,6 +232,220 @@ class Board:
             return False
 
         return True
+
+    def place_wall(self, wall_type, row, column):
+        if wall_type == 'Z':
+            self.board[row][column].right = True
+            self.board[row][column + 1].left = True
+            self.board[row + 1][column].right = True
+            self.board[row + 1][column + 1].left = True
+        else:
+            self.board[row][column].bottom = True
+            self.board[row][column + 1].bottom = True
+            self.board[row + 1][column].top = True
+            self.board[row + 1][column + 1].top = True
+
+    def check_pawn_paths(self, move, print_failure=True):
+        temp_board = deepcopy(self)
+        temp_board.move_pawn(*(move[0]))
+        temp_board.place_wall(*(move[1]))
+
+        if not temp_board.check_path('X', temp_board.player_1_pawns[0], temp_board.player_2_start[0]) or \
+                not temp_board.check_path('X', temp_board.player_1_pawns[0], temp_board.player_2_start[1]) or \
+                not temp_board.check_path('X', temp_board.player_1_pawns[1], temp_board.player_2_start[0]) or \
+                not temp_board.check_path('X', temp_board.player_1_pawns[1], temp_board.player_2_start[1]) or \
+                not temp_board.check_path('O', temp_board.player_2_pawns[0], temp_board.player_1_start[0]) or \
+                not temp_board.check_path('O', temp_board.player_2_pawns[0], temp_board.player_1_start[1]) or \
+                not temp_board.check_path('O', temp_board.player_2_pawns[1], temp_board.player_1_start[0]) or \
+                not temp_board.check_path('O', temp_board.player_2_pawns[1], temp_board.player_1_start[1]):
+            self.conditional_print("You cannot block one of the pawns path to the goal!", print_failure)
+            return False
+
+        return True
+
+    # A* algorithm to check if there is a pawn path from the source to the destination
+    def check_path(self, player, source, destination):
+        pass
+        return True
+
+    # Returns all legal pawn jumps from the square with the row and column
+    def legal_jumps(self, player, row, column):
+        jumps = [(row - 2, column),  # Topmost
+                 (row - 1, column),  # Top
+                 (row - 1, column - 1),  # Top-left
+                 (row - 1, column + 1),  # Top-right
+                 (row, column - 2),  # Leftmost
+                 (row, column - 1),  # Left
+                 (row, column + 2),  # Rightmost
+                 (row, column + 1),  # Right
+                 (row + 2, column),  # Bottommost
+                 (row + 1, column),  # Bottom,
+                 (row + 1, column - 1),  # Bottom-left
+                 (row + 1, column + 1),  # Bottom-right
+                 ]
+        source_square = self.board[row][column]
+
+        if row == 0:
+            # Top-side
+            jumps[0] = jumps[1] = jumps[2] = jumps[3] = False
+        else:
+            # Top-left
+            if column == 0 or (
+                (self.board[row - 1][column - 1].center == 'X' or self.board[row - 1][column - 1].center == 'O') and
+                (self.board[row - 1][column - 1].starting is None or self.board[row - 1][column - 1].starting == player)
+            ) or (
+                source_square.top_left()
+            ) or (
+                self.board[row - 1][column - 1].bottom_right()
+            ) or (
+                source_square.top and self.board[row][column - 1].top
+            ) or (
+                source_square.left and self.board[row - 1][column].left
+            ):
+                jumps[2] = False
+
+            # Top-right
+            if column == self.columns - 1 or (
+                (self.board[row - 1][column + 1].center == 'X' or self.board[row - 1][column + 1].center == 'O') and
+                (self.board[row - 1][column + 1].starting is None or self.board[row - 1][column + 1].starting == player)
+            ) or (
+                source_square.top_right()
+            ) or (
+                self.board[row - 1][column + 1].bottom_left()
+            ) or (
+                source_square.top and self.board[row][column + 1].top
+            ) or (
+                source_square.right and self.board[row - 1][column].right
+            ):
+                jumps[3] = False
+
+            # Topmost and Top
+            if source_square.top:
+                jumps[0] = jumps[1] = False
+            else:
+                # Top
+                if (self.board[row - 1][column].starting is None or self.board[row - 1][column].starting == player) \
+                        and (
+                    self.board[row - 1][column].center == 'X' or self.board[row - 1][column].center == 'O' or
+                    self.board[row - 1][column].top or
+                    row == 1 or
+                    (self.board[row - 2][column].center != 'X' and self.board[row - 2][column].center != 'O')
+                ):
+                    jumps[1] = False
+
+                # Top-most
+                if row == 1 or self.board[row - 1][column].top or \
+                        (
+                        (self.board[row - 2][column].starting is None or self.board[row - 2][column].starting == player)
+                        and
+                        (self.board[row - 2][column].center == 'X' or self.board[row - 2][column].center == 'O')
+                        ):
+                    jumps[0] = False
+
+        if row == self.rows - 1:
+            # Bottom-side
+            jumps[8] = jumps[9] = jumps[10] = jumps[11] = False
+        else:
+            # Bottom-left
+            if column == 0 or (
+                (self.board[row + 1][column - 1].center == 'X' or self.board[row + 1][column - 1].center == 'O') and
+                (self.board[row + 1][column - 1].starting is None or self.board[row + 1][column - 1].starting == player)
+            ) or (
+                source_square.bottom_left()
+            ) or (
+                self.board[row + 1][column - 1].top_right()
+            ) or (
+                source_square.bottom and self.board[row][column - 1].bottom
+            ) or (
+                source_square.left and self.board[row + 1][column].left
+            ):
+                jumps[10] = False
+
+            # Bottom-right
+            if column == self.columns - 1 or (
+                (self.board[row + 1][column + 1].center == 'X' or self.board[row + 1][column + 1].center == 'O') and
+                (self.board[row + 1][column + 1].starting is None or self.board[row + 1][column + 1].starting == player)
+            ) or (
+                source_square.bottom_right()
+            ) or (
+                self.board[row + 1][column + 1].top_left()
+            ) or (
+                source_square.bottom and self.board[row][column + 1].bottom
+            ) or (
+                source_square.right and self.board[row + 1][column].right
+            ):
+                jumps[11] = False
+
+            # Bottommost and Bottom
+            if source_square.bottom:
+                jumps[8] = jumps[9] = False
+            else:
+                # Bottom
+                if (self.board[row + 1][column].starting is None or self.board[row + 1][column].starting == player) \
+                        and (
+                        self.board[row + 1][column].center == 'X' or self.board[row + 1][column].center == 'O' or
+                        self.board[row + 1][column].bottom or
+                        row == self.rows - 2 or
+                        (self.board[row + 2][column].center != 'X' and self.board[row + 2][column].center != 'O')
+                ):
+                    jumps[9] = False
+
+                # Bottom-most
+                if row == self.rows - 2 or self.board[row + 1][column].bottom or \
+                        (
+                        (self.board[row + 2][column].starting is None or self.board[row + 2][column].starting == player)
+                        and
+                        (self.board[row + 2][column].center == 'X' or self.board[row + 2][column].center == 'O')
+                        ):
+                    jumps[8] = False
+
+        # Left-most and Left
+        if column == 0 or source_square.left:
+            jumps[4] = jumps[5] = False
+        else:
+            # Left
+            if (self.board[row][column - 1].starting is None or self.board[row][column - 1].starting == player) \
+                    and (
+                    self.board[row][column - 1].center == 'X' or self.board[row][column - 1].center == 'O' or
+                    self.board[row][column - 1].left or
+                    column == 1 or
+                    (self.board[row][column - 2].center != 'X' and self.board[row][column - 2].center != 'O')
+            ):
+                jumps[5] = False
+
+            # Left-most
+            if column == 1 or self.board[row][column - 1].left or \
+                    (
+                    (self.board[row][column - 2].starting is None or self.board[row][column - 2].starting == player)
+                    and
+                    (self.board[row][column - 2].center == 'X' or self.board[row][column - 2].center == 'O')
+                    ):
+                jumps[4] = False
+
+        # Right-most and Right
+        if column == self.columns - 1 or source_square.right:
+            jumps[6] = jumps[7] = False
+        else:
+            # Right
+            if (self.board[row][column + 1].starting is None or self.board[row][column + 1].starting == player) \
+                    and (
+                    self.board[row][column + 1].center == 'X' or self.board[row][column + 1].center == 'O' or
+                    self.board[row][column + 1].right or
+                    column == self.columns - 2 or
+                    (self.board[row][column + 2].center != 'X' and self.board[row][column + 2].center != 'O')
+            ):
+                jumps[7] = False
+
+            # Right-most
+            if column == self.columns - 2 or self.board[row][column + 1].right or \
+                    (
+                    (self.board[row][column + 2].starting is None or self.board[row][column + 2].starting == player)
+                    and
+                    (self.board[row][column + 2].center == 'X' or self.board[row][column + 2].center == 'O')
+                    ):
+                jumps[6] = False
+
+        return tuple(filter(lambda jump: jump, jumps))
 
     @staticmethod
     def matrix_index_to_board_index(index):
@@ -244,7 +469,7 @@ class BoardSquare:
         self.left = False
         self.right = False
         self.bottom = False
-        # Variable for remembering the starting position of first or second player
+        # Variable for remembering the starting position of the first or second player
         self.starting = None
 
     def set_start(self, player):

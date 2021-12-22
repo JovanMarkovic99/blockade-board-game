@@ -28,16 +28,20 @@ class Game:
         else:
             self.input_config()
 
-        if self.yes_no_prompt("Do you wish to play versus a computer?"):
-            if self.yes_no_prompt("Do you wish to play first?"):
-                self.player_1 = Human('X', self.walls)
-                self.player_2 = Computer('O', self.walls)
+        if self.yes_no_prompt("Do you wish to play?"):
+            if self.yes_no_prompt("Do you wish to play versus a computer?"):
+                if self.yes_no_prompt("Do you wish to play first?"):
+                    self.player_1 = Human('X', self.walls)
+                    self.player_2 = Computer('O', self.walls)
+                else:
+                    self.player_1 = Computer('X', self.walls)
+                    self.player_2 = Human('O', self.walls)
             else:
-                self.player_1 = Computer('X', self.walls)
+                self.player_1 = Human('X', self.walls)
                 self.player_2 = Human('O', self.walls)
         else:
-            self.player_1 = Human('X', self.walls)
-            self.player_2 = Human('O', self.walls)
+            self.player_1 = Computer('X', self.walls)
+            self.player_2 = Computer('O', self.walls)
 
         self.board = Board(self.rows, self.columns, self.player_1_pawns, self.player_2_pawns)
 

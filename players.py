@@ -1,6 +1,6 @@
 from re import fullmatch
 from copy import deepcopy
-from itertools import product
+from itertools import product, chain
 from random import choice
 
 from board import Board
@@ -33,42 +33,16 @@ class Player:
     def play_move(self, board, move, update_walls=True):
         new_board = deepcopy(board)
 
-        # Update player pawn and board
-        player = move[0][0]
-        pawn_index = move[0][1]
-        new_row, new_col = move[0][2], move[0][3]
-        player_pawns = new_board.player_1_pawns if player == 'X' else new_board.player_2_pawns
+        new_board.move_pawn(move[0][0], move[0][1], move[0][2], move[0][3])
 
-        # Update board
-        new_board.board[player_pawns[pawn_index][0]][player_pawns[pawn_index][1]].center = \
-            ' ' if new_board.board[player_pawns[pawn_index][0]][player_pawns[pawn_index][1]].starting is None else '·'
-        new_board.board[new_row][new_col].center = player
-
-        # Update pawn position
-        player_pawns[pawn_index][0], player_pawns[pawn_index][1] = new_row, new_col
-
-        # Update player walls and board walls
         if len(move) == 2:
-            wall_row, wall_column = move[1][1], move[1][2]
+            new_board.place_wall(move[1][0], move[1][1], move[1][2])
 
-            # Vertical walls
-            if move[1][0] == 'Z':
-                new_board.board[wall_row][wall_column].right = True
-                new_board.board[wall_row][wall_column + 1].left = True
-                new_board.board[wall_row + 1][wall_column].right = True
-                new_board.board[wall_row + 1][wall_column + 1].left = True
-
-                if update_walls:
+            # Update the number of walls
+            if update_walls:
+                if move[1][0] == 'Z':
                     self.vertical_walls -= 1
-
-            # Horizontal walls
-            else:
-                new_board.board[wall_row][wall_column].bottom = True
-                new_board.board[wall_row][wall_column + 1].bottom = True
-                new_board.board[wall_row + 1][wall_column].top = True
-                new_board.board[wall_row + 1][wall_column + 1].top = True
-
-                if update_walls:
+                else:
                     self.horizontal_walls -= 1
 
         return new_board
@@ -86,36 +60,29 @@ class Computer(Player):
 
     def legal_board_moves(self, board):
         if self.vertical_walls > 0 or self.horizontal_walls > 0:
-            # TODO: Add path check
-            return tuple(product(self.legal_pawn_moves(board), self.legal_wall_placements(board)))
+            pawn_moves = self.legal_pawn_moves(board)
+            wall_moves = self.legal_wall_placements(board)
+            legal_moves = list(product(pawn_moves, wall_moves))
+
+            # TODO: Implement parts of Boykov-Kolmogorov maxflow algorithm
+
+            return legal_moves
         else:
-            return tuple(self.legal_pawn_moves(board))
+            return tuple(map(lambda move: (move,), self.legal_pawn_moves(board)))
 
     def legal_pawn_moves(self, board):
         pawns = board.player_1_pawns if self.player == 'X' else board.player_2_pawns
 
-        # All pawn offsets in every direction, calculated with the code below then manually added for efficiency
-        # pawn_offset_permutations = tuple(filter(lambda offset: 0 <= abs(offset[0]) + abs(offset[1]) <= 2,
-        #                                  product((-2, -1, 0, 1, 2), (-2, -1, 0, 1, 2))))
-        pawn_offset_permutations = ((-2, 0), (-1, -1), (-1, 0), (-1, 1), (0, -2), (0, -1), (0, 0), (0, 1), (0, 2),
-                                    (1, -1), (1, 0), (1, 1), (2, 0))
-
-        # Check which permutations make legal moves
-        legal_moves = []
-        for pawn_index in range(2):
-            for row_offset, column_offset in pawn_offset_permutations:
-                new_row, new_col = pawns[pawn_index][0] + row_offset, pawns[pawn_index][1] + column_offset
-
-                # Instead of recalling the function, if needed, this can be optimized by checking the squares around the
-                # pawn and adding the appropriate moves, which would effectively be the same as calling this function
-                # twice, once for both pawns, instead of recalling it for every potential legal move.
-                if board.valid_pawn_move(self.player, pawn_index, new_row, new_col, print_failure=False):
-                    legal_moves.append((self.player, pawn_index, new_row, new_col))
-
-        return legal_moves
+        return tuple(chain(
+            map(lambda l: (self.player, 0, *l), board.legal_jumps(self.player, pawns[0][0], pawns[0][1])),
+            map(lambda l: (self.player, 1, *l), board.legal_jumps(self.player, pawns[1][0], pawns[1][1]))
+        ))
 
     def legal_wall_placements(self, board):
         legal_moves = []
+
+        if self.horizontal_walls < 0 or self.vertical_walls < 0:
+            pass
 
         for row in range(board.rows - 1):
             for column in range(board.columns - 1):
@@ -175,7 +142,10 @@ class Human(Player):
             if not board.valid_wall_placement(wall_type, wall_row, wall_column):
                 return False
 
-            # TODO: Add path check
+            # Check if new position has no blocked paths
+            if not board.check_pawn_paths(((player, pawn_index, pawn_row, pawn_column),
+                                           (wall_type, wall_row, wall_column))):
+                return False
 
         # Check if wall can be placed
         elif self.vertical_walls > 0 or self.horizontal_walls > 0:
