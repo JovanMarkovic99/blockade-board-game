@@ -1,3 +1,5 @@
+import heapq
+from math import hypot
 from copy import deepcopy
 
 
@@ -245,7 +247,7 @@ class Board:
             self.board[row + 1][column].top = True
             self.board[row + 1][column + 1].top = True
 
-    def check_pawn_paths(self, move, print_failure=True):
+    def check_paths_after_move(self, move, print_failure=True):
         temp_board = deepcopy(self)
         temp_board.move_pawn(*(move[0]))
         temp_board.place_wall(*(move[1]))
@@ -258,15 +260,28 @@ class Board:
                 not temp_board.check_path('O', temp_board.player_2_pawns[0], temp_board.player_1_start[1]) or \
                 not temp_board.check_path('O', temp_board.player_2_pawns[1], temp_board.player_1_start[0]) or \
                 not temp_board.check_path('O', temp_board.player_2_pawns[1], temp_board.player_1_start[1]):
-            self.conditional_print("You cannot block one of the pawns path to the goal!", print_failure)
+            self.conditional_print("You cannot block one of the pawns' path to the goal!", print_failure)
             return False
 
         return True
 
     # A* algorithm to check if there is a pawn path from the source to the destination
     def check_path(self, player, source, destination):
-        pass
-        return True
+        seen_dict = {(source[0], source[1]): True}
+        prio_queue = [(hypot(source[1] - destination[1], source[0] - destination[0]), *source)]
+
+        while len(prio_queue):
+            _, row, column = heapq.heappop(prio_queue)
+
+            if row == destination[0] and column == destination[1]:
+                return True
+
+            for new_pos in \
+                    filter(lambda jump: jump not in seen_dict, self.legal_jumps(player, row, column)):
+                seen_dict[new_pos] = True
+                heapq.heappush(prio_queue, (hypot(new_pos[1] - destination[1], new_pos[0] - destination[0]), *new_pos))
+
+        return False
 
     # Returns all legal pawn jumps from the square with the row and column
     def legal_jumps(self, player, row, column):

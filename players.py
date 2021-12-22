@@ -64,9 +64,8 @@ class Computer(Player):
             wall_moves = self.legal_wall_placements(board)
             legal_moves = list(product(pawn_moves, wall_moves))
 
-            # TODO: Implement parts of Boykov-Kolmogorov maxflow algorithm
-
-            return legal_moves
+            # TODO: Implement parts of Boykov-Kolmogorov maxflow algorithm and replace this very inefficient algorithm
+            return tuple(filter(lambda move: board.check_paths_after_move(move, print_failure=False), legal_moves))
         else:
             return tuple(map(lambda move: (move,), self.legal_pawn_moves(board)))
 
@@ -143,8 +142,8 @@ class Human(Player):
                 return False
 
             # Check if new position has no blocked paths
-            if not board.check_pawn_paths(((player, pawn_index, pawn_row, pawn_column),
-                                           (wall_type, wall_row, wall_column))):
+            if not board.check_paths_after_move(((player, pawn_index, pawn_row, pawn_column),
+                                                 (wall_type, wall_row, wall_column))):
                 return False
 
         # Check if wall can be placed
