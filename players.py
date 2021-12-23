@@ -80,9 +80,6 @@ class Computer(Player):
     def legal_wall_placements(self, board):
         legal_moves = []
 
-        if self.horizontal_walls < 0 or self.vertical_walls < 0:
-            pass
-
         for row in range(board.rows - 1):
             for column in range(board.columns - 1):
                 if self.vertical_walls > 0:

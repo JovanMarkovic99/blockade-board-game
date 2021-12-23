@@ -271,6 +271,7 @@ class Board:
         prio_queue = [(hypot(source[1] - destination[1], source[0] - destination[0]), *source)]
 
         while len(prio_queue):
+            # noinspection PyTupleAssignmentBalance
             _, row, column = heapq.heappop(prio_queue)
 
             if row == destination[0] and column == destination[1]:
