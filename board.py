@@ -213,14 +213,18 @@ class Board:
 
     def move_pawn(self, player, pawn_index, row, column):
         player_pawns = self.player_1_pawns if player == 'X' else self.player_2_pawns
-
-        # Update board
-        self.board[player_pawns[pawn_index][0]][player_pawns[pawn_index][1]].center = \
-            ' ' if self.board[player_pawns[pawn_index][0]][player_pawns[pawn_index][1]].starting is None else '·'
-        self.board[row][column].center = player
+        old_row, old_column = player_pawns[pawn_index][0], player_pawns[pawn_index][1]
 
         # Update pawn position
         player_pawns[pawn_index][0], player_pawns[pawn_index][1] = row, column
+
+        # Update board
+        self.board[old_row][old_column].center = \
+            ' ' if self.board[old_row][old_column].starting is None else '·'
+        self.board[row][column].center = player
+
+        # Return the undoing move
+        return player, pawn_index, old_row, old_column
 
     def valid_wall_placement(self, wall_type, row, column, print_failure=True):
         # Check if wall indices are in range
@@ -235,33 +239,42 @@ class Board:
 
         return True
 
-    def place_wall(self, wall_type, row, column):
+    def place_wall(self, wall_type, row, column, lift=False):
         if wall_type == 'Z':
-            self.board[row][column].right = True
-            self.board[row][column + 1].left = True
-            self.board[row + 1][column].right = True
-            self.board[row + 1][column + 1].left = True
+            self.board[row][column].right = not lift
+            self.board[row][column + 1].left = not lift
+            self.board[row + 1][column].right = not lift
+            self.board[row + 1][column + 1].left = not lift
         else:
-            self.board[row][column].bottom = True
-            self.board[row][column + 1].bottom = True
-            self.board[row + 1][column].top = True
-            self.board[row + 1][column + 1].top = True
+            self.board[row][column].bottom = not lift
+            self.board[row][column + 1].bottom = not lift
+            self.board[row + 1][column].top = not lift
+            self.board[row + 1][column + 1].top = not lift
 
     def check_paths_after_move(self, move, print_failure=True):
-        temp_board = deepcopy(self)
-        temp_board.move_pawn(*(move[0]))
-        temp_board.place_wall(*(move[1]))
+        # Make the move
+        undo_move = self.move_pawn(*(move[0]))
+        self.place_wall(*(move[1]))
 
-        if not temp_board.check_path('X', temp_board.player_1_pawns[0], temp_board.player_2_start[0]) or \
-                not temp_board.check_path('X', temp_board.player_1_pawns[0], temp_board.player_2_start[1]) or \
-                not temp_board.check_path('X', temp_board.player_1_pawns[1], temp_board.player_2_start[0]) or \
-                not temp_board.check_path('X', temp_board.player_1_pawns[1], temp_board.player_2_start[1]) or \
-                not temp_board.check_path('O', temp_board.player_2_pawns[0], temp_board.player_1_start[0]) or \
-                not temp_board.check_path('O', temp_board.player_2_pawns[0], temp_board.player_1_start[1]) or \
-                not temp_board.check_path('O', temp_board.player_2_pawns[1], temp_board.player_1_start[0]) or \
-                not temp_board.check_path('O', temp_board.player_2_pawns[1], temp_board.player_1_start[1]):
+        if not self.check_path('X', self.player_1_pawns[0], self.player_2_start[0]) or \
+                not self.check_path('X', self.player_1_pawns[0], self.player_2_start[1]) or \
+                not self.check_path('X', self.player_1_pawns[1], self.player_2_start[0]) or \
+                not self.check_path('X', self.player_1_pawns[1], self.player_2_start[1]) or \
+                not self.check_path('O', self.player_2_pawns[0], self.player_1_start[0]) or \
+                not self.check_path('O', self.player_2_pawns[0], self.player_1_start[1]) or \
+                not self.check_path('O', self.player_2_pawns[1], self.player_1_start[0]) or \
+                not self.check_path('O', self.player_2_pawns[1], self.player_1_start[1]):
+
+            # Undo the move
+            self.place_wall(*(move[1]), lift=True)
+            self.move_pawn(*undo_move)
+
             self.conditional_print("You cannot block one of the pawns' path to the goal!", print_failure)
             return False
+
+        # Undo the move
+        self.place_wall(*(move[1]), lift=True)
+        self.move_pawn(*undo_move)
 
         return True
 

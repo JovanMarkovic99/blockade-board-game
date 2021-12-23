@@ -60,12 +60,7 @@ class Computer(Player):
 
     def legal_board_moves(self, board):
         if self.vertical_walls > 0 or self.horizontal_walls > 0:
-            pawn_moves = self.legal_pawn_moves(board)
-            wall_moves = self.legal_wall_placements(board)
-            legal_moves = list(product(pawn_moves, wall_moves))
-
-            # TODO: Implement parts of Boykov-Kolmogorov maxflow algorithm and replace this very inefficient algorithm
-            return tuple(filter(lambda move: board.check_paths_after_move(move, print_failure=False), legal_moves))
+            return self.moves_with_legal_paths(board, self.legal_pawn_moves(board), self.legal_wall_placements(board))
         else:
             return tuple(map(lambda move: (move,), self.legal_pawn_moves(board)))
 
@@ -91,6 +86,15 @@ class Computer(Player):
                         legal_moves.append(('P', row, column))
 
         return legal_moves
+
+    @staticmethod
+    def check_moves_with_legal_paths(board, pawn_moves, wall_moves):
+        return tuple(
+            filter(
+                lambda move: board.check_paths_after_move(move, print_failure=False),
+                product(pawn_moves, wall_moves)
+            )
+        )
 
 
 class Human(Player):
