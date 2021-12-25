@@ -36,10 +36,10 @@ class Player:
     def play_move(self, board, move, update_walls=True):
         new_board = deepcopy(board)
 
-        new_board.move_pawn(move[0][0], move[0][1], move[0][2], move[0][3])
+        new_board.move_pawn(*(move[0]))
 
         if len(move) == 2:
-            new_board.place_wall(move[1][0], move[1][1], move[1][2])
+            new_board.place_wall(*(move[1]))
 
             # Update the number of walls
             if update_walls:
@@ -297,6 +297,9 @@ class Player:
         )
 
     # Returns a filtered list of wall moves that don't block the path of the given player's pawns
+    # The algorithm tries to find two non-adjacent paths for every path that needs to be checked.
+    # If found, both of the paths cannot be blocked, so path-checking for that path is excluded.
+    # If not, it tests if any of the walls obstruct the path and then tries to reconstruct it
     @staticmethod
     def filter_blocking_walls(board, player, wall_moves):
         if player == 'X':
@@ -311,13 +314,22 @@ class Player:
 
         for pawn_index in range(2):
             for goal_index in range(2):
-                next_jump, prev_jump, jump_filter = \
+                path, jump_filter = \
                     Player.find_non_adjacent_paths(board, pawns[pawn_index], goals[goal_index])
-                new_next_jump, new_prev_jump, _ = \
+                new_path, _ = \
                     Player.find_non_adjacent_paths(board, pawns[pawn_index], goals[goal_index], jump_filter=jump_filter)
 
-                if goals[goal_index] not in new_prev_jump:
-                    paths[pawn_index * 2 + goal_index] = (next_jump, prev_jump)
+                if not new_path:
+                    # Filter out the path (necessary for checking which square is part of the path)
+                    new_path = dict()
+
+                    start = goals[goal_index]
+                    goal = (pawns[pawn_index][0], pawns[pawn_index][1])
+                    while start != goal:
+                        new_path[start] = path[start]
+                        start = path[start]
+
+                    paths[pawn_index * 2 + goal_index] = new_path
 
         # If two paths are found blocking both the paths is impossible
         if paths == [True, True, True, True]:
@@ -325,15 +337,51 @@ class Player:
 
         filtered_wall_moves = []
 
-        # TODO: Filter out wall moves
-        return wall_moves
+        # Test if any of the walls obstructs the paths and reconstruct the path if necessary
+        for wall_move in wall_moves:
+            legal = True
+
+            for index, path in enumerate(paths):
+                if type(path) is dict:
+                    affected_squares = dict()
+                    board.place_wall(*wall_move)
+
+                    # Check for parts of the path that need to be reconstructed
+                    for potential_square in Player.iter_wall_placement_affected_squares(board, *wall_move):
+                        if potential_square in path and path[potential_square] not in \
+                                board.iter_non_blocking_jumps(potential_square[0], potential_square[1]):
+                            affected_squares[potential_square] = True
+
+                    # Find the first and last break in the path and reconstruct the path from between those points
+                    if len(affected_squares) > 0:
+                        # Find the first and last break
+                        first_break = None
+                        last_break = None
+
+                        start = goals[index % 2]
+                        goal = (pawns[int(index > 1)][0], pawns[int(index > 1)][1])
+                        while start != goal:
+                            if start in affected_squares:
+                                if first_break is None:
+                                    first_break = start
+                                last_break = start
+
+                            start = path[start]
+
+                        # Reconstruct the path
+                        if not board.check_path(first_break, last_break):
+                            legal = False
+
+                    board.place_wall(*wall_move, lift=True)
+
+            if legal:
+                filtered_wall_moves.append(wall_move)
 
         return filtered_wall_moves
 
     @staticmethod
     def find_non_adjacent_paths(board, source, destination, jump_filter=None):
-        # Dictionaries for keeping track of the path
-        next_jump = dict()
+        # Dictionary for keeping track of the path
         prev_jump = dict()
 
         # Heapq is used instead of PriorityQueue because the performance of lists in this case is faster
@@ -344,10 +392,6 @@ class Player:
             _, row, column = heapq.heappop(prio_queue)
             pos = (row, column)
 
-            # Update path
-            if row != source[0] or column != source[1]:
-                next_jump[prev_jump[pos]] = pos
-
             if row == destination[0] and column == destination[1]:
                 break
 
@@ -357,13 +401,17 @@ class Player:
                 prev_jump[new_pos] = pos
                 heapq.heappush(prio_queue, (hypot(new_pos[1] - destination[1], new_pos[0] - destination[0]), *new_pos))
 
+        # Check if a path is found
+        if (destination[0], destination[1]) not in prev_jump:
+            return False, False
+
         # Fill out the filter dictionary
         if jump_filter is None:
             jump_filter = dict()
 
-        current = (source[0], source[1])
-        while current[0] != destination[0] or current[1] != destination[1]:
-            current = next_jump[current]
+        current = (destination[0], destination[1])
+        while current[0] != source[0] or current[1] != source[1]:
+            current = prev_jump[current]
 
             jump_filter[current] = True
             if current[0] > 0:
@@ -378,7 +426,32 @@ class Player:
         jump_filter.pop((source[0], source[1]), None)
         jump_filter.pop((destination[0], destination[1]), None)
 
-        return next_jump, prev_jump, jump_filter
+        return prev_jump, jump_filter
+
+    # Returns all squares whose non-blocking jumps may be changed if a given wall is placed
+    @staticmethod
+    def iter_wall_placement_affected_squares(board, wall_type, row, column):
+        yield row, column
+        yield row, column + 1
+        yield row + 1, column
+        yield row + 1, column + 1
+
+        if wall_type == 'Z':
+            if row > 0:
+                yield row - 1, column
+                yield row - 1, column + 1
+
+            if row < board.rows - 2:
+                yield row + 2, column
+                yield row + 2, column + 1
+        else:
+            if column > 0:
+                yield row, column - 1
+                yield row + 1, column - 1
+
+            if column < board.columns - 2:
+                yield row, column + 2
+                yield row + 1, column + 2
 
 
 class Computer(Player):
@@ -401,9 +474,10 @@ class Human(Player):
 
         player, pawn_index, pawn_row, pawn_column, wall_type, wall_row, wall_column = self.extract_move_info(move)
 
-        return ((player, pawn_index, pawn_row, pawn_column),) \
-                   if wall_type is None else \
-                   (player, pawn_index, pawn_row, pawn_column), (wall_type, wall_row, wall_column)
+        return \
+            ((player, pawn_index, pawn_row, pawn_column),) \
+            if wall_type is None else \
+            (player, pawn_index, pawn_row, pawn_column), (wall_type, wall_row, wall_column)
 
     def valid_move(self, board, move):
         if move is None:
