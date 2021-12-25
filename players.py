@@ -283,25 +283,28 @@ class Player:
     def legal_pawn_wall_move_combinations(board, pawn_moves, wall_moves):
         player = pawn_moves[0][0]
 
-        import timeit
-        start = timeit.default_timer()
         # Filter out walls that block the path of the opponents pawns
         wall_moves = Player.filter_blocking_walls(board, 'O' if player == 'X' else 'X', wall_moves)
-        print(timeit.default_timer() - start)
 
-        return tuple(
-            filter(
-                lambda move: board.check_paths_after_move(move, print_failure=False),
-                product(pawn_moves, wall_moves)
-            )
-        )
+        moves = []
+        # TODO: Change algorithm to use a search tree and process all pawn moves at the same time
+        for pawn_move in pawn_moves:
+            undo_move = board.move_pawn(*pawn_move)
+
+            new_wall_moves = Player.filter_blocking_walls(board, player, wall_moves, only_pawn_index=pawn_move[1])
+
+            board.move_pawn(*undo_move)
+
+            moves += product([pawn_move], new_wall_moves)
+
+        return moves
 
     # Returns a filtered list of wall moves that don't block the path of the given player's pawns
     # The algorithm tries to find two non-adjacent paths for every path that needs to be checked.
     # If found, both of the paths cannot be blocked, so path-checking for that path is excluded.
     # If not, it tests if any of the walls obstruct the path and then tries to reconstruct it
     @staticmethod
-    def filter_blocking_walls(board, player, wall_moves):
+    def filter_blocking_walls(board, player, wall_moves, only_pawn_index=None):
         if player == 'X':
             pawns = board.player_1_pawns
             goals = board.player_2_start
@@ -313,6 +316,9 @@ class Player:
         paths = [True] * 4
 
         for pawn_index in range(2):
+            if only_pawn_index is not None and pawn_index == only_pawn_index:
+                continue
+
             for goal_index in range(2):
                 path, jump_filter = \
                     Player.find_non_adjacent_paths(board, pawns[pawn_index], goals[goal_index])
@@ -323,7 +329,7 @@ class Player:
                     # Filter out the path (necessary for checking which square is part of the path)
                     new_path = dict()
 
-                    start = goals[goal_index]
+                    start = (goals[goal_index][0], goals[goal_index][1])
                     goal = (pawns[pawn_index][0], pawns[pawn_index][1])
                     while start != goal:
                         new_path[start] = path[start]
@@ -343,34 +349,22 @@ class Player:
 
             for index, path in enumerate(paths):
                 if type(path) is dict:
-                    affected_squares = dict()
                     board.place_wall(*wall_move)
 
                     # Check for parts of the path that need to be reconstructed
+                    first_affected_square = None
+                    last_affected_square = None
                     for potential_square in Player.iter_wall_placement_affected_squares(board, *wall_move):
                         if potential_square in path and path[potential_square] not in \
                                 board.iter_non_blocking_jumps(potential_square[0], potential_square[1]):
-                            affected_squares[potential_square] = True
+                            if first_affected_square is None:
+                                first_affected_square = potential_square
+                            last_affected_square = path[potential_square]
 
-                    # Find the first and last break in the path and reconstruct the path from between those points
-                    if len(affected_squares) > 0:
-                        # Find the first and last break
-                        first_break = None
-                        last_break = None
-
-                        start = goals[index % 2]
-                        goal = (pawns[int(index > 1)][0], pawns[int(index > 1)][1])
-                        while start != goal:
-                            if start in affected_squares:
-                                if first_break is None:
-                                    first_break = start
-                                last_break = start
-
-                            start = path[start]
-
-                        # Reconstruct the path
-                        if not board.check_path(first_break, last_break):
-                            legal = False
+                    # Try and reconstruct the path
+                    if first_affected_square is not None and \
+                            not board.check_path(first_affected_square, last_affected_square):
+                        legal = False
 
                     board.place_wall(*wall_move, lift=True)
 

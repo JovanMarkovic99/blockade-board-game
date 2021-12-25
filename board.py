@@ -1,6 +1,6 @@
 import heapq
 from math import hypot
-from copy import deepcopy
+from copy import deepcopy, copy
 
 
 class Board:
@@ -9,9 +9,8 @@ class Board:
         self.columns = columns
         self.player_1_pawns = deepcopy(player_1_pawns)
         self.player_2_pawns = deepcopy(player_2_pawns)
-        self.player_1_start = (tuple(player_1_pawns[0]), tuple(player_1_pawns[1]))
-        self.player_2_start = (tuple(player_2_pawns[0]), tuple(player_2_pawns[1]))
-        print(self.player_2_start)
+        self.player_1_start = (copy(player_1_pawns[0]), copy(player_1_pawns[1]))
+        self.player_2_start = (copy(player_2_pawns[0]), copy(player_2_pawns[1]))
 
         self.board = [[BoardSquare() for _ in range(columns)] for _ in range(rows)]
         self.board[player_1_pawns[0][0]][player_1_pawns[0][1]].set_start('X')
