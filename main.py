@@ -31,17 +31,17 @@ class Game:
         if self.yes_no_prompt("Do you wish to play?"):
             if self.yes_no_prompt("Do you wish to play versus a computer?"):
                 if self.yes_no_prompt("Do you wish to play first?"):
-                    self.player_1 = Human('X', self.walls)
-                    self.player_2 = Computer('O', self.walls)
+                    self.player_1 = Human('X', self.walls, self)
+                    self.player_2 = Computer('O', self.walls, self)
                 else:
-                    self.player_1 = Computer('X', self.walls)
-                    self.player_2 = Human('O', self.walls)
+                    self.player_1 = Computer('X', self.walls, self)
+                    self.player_2 = Human('O', self.walls, self)
             else:
-                self.player_1 = Human('X', self.walls)
-                self.player_2 = Human('O', self.walls)
+                self.player_1 = Human('X', self.walls, self)
+                self.player_2 = Human('O', self.walls, self)
         else:
-            self.player_1 = Computer('X', self.walls)
-            self.player_2 = Computer('O', self.walls)
+            self.player_1 = Computer('X', self.walls, self)
+            self.player_2 = Computer('O', self.walls, self)
 
         self.board = Board(self.rows, self.columns, self.player_1_pawns, self.player_2_pawns)
 
