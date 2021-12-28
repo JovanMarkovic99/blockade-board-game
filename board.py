@@ -278,9 +278,9 @@ class Board:
 
         return True
 
-    # A* algorithm to find (or check if it exists) a pawn path from the source to the destination
+    # A* algorithm to check if there is a pawn path from the source to the destination
     def check_path(self, source, destination):
-        seen_dict = {(source[0], source[1]): None}
+        seen_dict = {(source[0], source[1]): True}
         # Heapq is used instead of PriorityQueue because the performance of lists in this case is faster
         prio_queue = [(hypot(source[1] - destination[1], source[0] - destination[0]), *source)]
 
