@@ -65,26 +65,6 @@ class Game:
         self.board.print_board()
         current_player.print_winner(moves)
 
-    def test_run(self):
-        sum_time = 0
-        num_sum_time = 0
-
-        for i in range(100):
-            new_players = cycle((deepcopy(self.player_1), deepcopy(self.player_2)))
-            new_board = deepcopy(self.board)
-
-            start = timeit.default_timer()
-
-            while not new_board.game_end():
-                current_player = next(new_players)
-
-                new_board = current_player.play_move(new_board, current_player.get_move(new_board))
-
-                num_sum_time += 1
-
-            sum_time += timeit.default_timer() - start
-            print("MOVE_AVERAGE_TIME: " + str(sum_time / num_sum_time))
-
     # Input the config from the user
     def input_config(self):
         self.rows = self.integer_prompt("Enter an odd number of rows (11 <= x <= 22): ", lower_bound=11,
@@ -249,4 +229,4 @@ class Game:
 if __name__ == "__main__":
     g = Game()
     g.setup()
-    g.test_run()
+    g.run()

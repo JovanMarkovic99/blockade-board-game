@@ -288,12 +288,18 @@ class Player:
         # Filter out walls that block the path of the opponents pawns
         wall_moves = Player.filter_blocking_walls(board, 'O' if player == 'X' else 'X', wall_moves)
 
-        moves = []
         # TODO: Change algorithm to use a search tree and process all pawn moves at the same time
+        moves = []
+
+        # Walls that don't block the first and second pawn at their base position
+        non_pawn_blocking = (Player.filter_blocking_walls(board, player, wall_moves, only_pawn_index=0),
+                             Player.filter_blocking_walls(board, player, wall_moves, only_pawn_index=1))
+
         for pawn_move in pawn_moves:
             undo_move = board.move_pawn(*pawn_move)
 
-            new_wall_moves = Player.filter_blocking_walls(board, player, wall_moves, only_pawn_index=pawn_move[1])
+            new_wall_moves = Player.filter_blocking_walls(board, player, non_pawn_blocking[(pawn_move[1] + 1) % 2],
+                                                          only_pawn_index=pawn_move[1])
 
             board.move_pawn(*undo_move)
 
@@ -316,7 +322,6 @@ class Player:
 
         # Try to find two non-adjacent paths from each start to each pawn
         paths = [True] * 4
-
         for pawn_index in range(2):
             if only_pawn_index is not None and pawn_index != only_pawn_index:
                 continue
@@ -328,16 +333,15 @@ class Player:
                     Player.find_non_adjacent_paths(board, pawns[pawn_index], goals[goal_index], jump_filter=jump_filter)
 
                 # If two paths are found blocking both the paths is impossible otherwise it is possible
-                if not new_path:
+                if type(new_path) is not dict:
                     paths[pawn_index * 2 + goal_index] = path
 
         # Check if there are is no way to block any of the paths
-        if all(paths):
+        if paths == [True, True, True, True]:
             return wall_moves
 
-        filtered_wall_moves = []
-
         # Test if any of the walls obstructs the paths and reconstruct the path if necessary
+        filtered_wall_moves = []
         for wall_move in wall_moves:
             legal = True
             board.place_wall(*wall_move)
@@ -368,6 +372,9 @@ class Player:
 
     @staticmethod
     def find_non_adjacent_paths(board, source, destination, jump_filter=None):
+        if source[0] == destination[0] and source[1] == destination[1]:
+            return {}, {}
+
         # Dictionary for keeping track of the path
         prev_jump = {(source[0], source[1]): None}
 
@@ -401,31 +408,74 @@ class Player:
         while current[0] != source[0] or current[1] != source[1]:
             path[current] = prev_jump[current]
 
-            if current[0] != destination[0] or current[1] != destination[1]:
-                jump_filter[current] = True
-                if current[0] > 0:
-                    jump_filter[(current[0] - 1, current[1])] = True
-                    if current[1] > 0:
-                        jump_filter[(current[0] - 1, current[1] - 1)] = True
-                    if current[1] < board.columns - 1:
-                        jump_filter[(current[0] - 1, current[1] + 1)] = True
-                if current[0] < board.rows - 1:
-                    jump_filter[(current[0] + 1, current[1])] = True
-                    if current[1] > 0:
-                        jump_filter[(current[0] + 1, current[1] - 1)] = True
-                    if current[1] < board.columns - 1:
-                        jump_filter[(current[0] + 1, current[1] + 1)] = True
-                if current[1] > 0:
-                    jump_filter[(current[0], current[1] - 1)] = True
-                if current[1] < board.columns - 1:
-                    jump_filter[(current[0], current[1] + 1)] = True
+            for adjacent_square in Player.iter_adjacent_squares_from_jump(board, current, prev_jump[current]):
+                jump_filter[adjacent_square] = True
 
             current = prev_jump[current]
 
-        jump_filter.pop((source[0], source[1]), None)
-        jump_filter.pop((destination[0], destination[1]), None)
+        del jump_filter[(source[0], source[1])]
+        del jump_filter[(destination[0], destination[1])]
 
         return path, jump_filter
+
+    # Returns all the squares that cannot be jumped to in order for the paths to be non-adjacent
+    @staticmethod
+    def iter_adjacent_squares_from_jump(board, prev_pos, pos, include_jump_squares=True):
+        if include_jump_squares:
+            yield prev_pos
+            yield pos
+
+        # Top-side
+        if prev_pos[0] > pos[0]:
+            # Top-Middle
+            if prev_pos[1] == pos[1]:
+                if pos[1] > 0:
+                    yield pos[0], pos[1] - 1
+                    yield prev_pos[0], prev_pos[1] - 1
+                if pos[1] < board.columns - 1:
+                    yield pos[0], pos[1] + 1
+                    yield prev_pos[0], prev_pos[1] + 1
+
+            # Top-Left
+            elif prev_pos[1] > pos[1]:
+                yield pos[0], pos[1] + 1
+                yield pos[0] + 1, pos[1]
+                if pos[0] > 0:
+                    yield pos[0] - 1, pos[1] + 1
+                if pos[1] > 0:
+                    yield pos[0] + 1, pos[1] - 1
+                if prev_pos[0] < board.rows - 1:
+                    yield prev_pos[0] + 1, prev_pos[1] - 1
+                if prev_pos[1] < board.columns - 1:
+                    yield prev_pos[0] - 1, prev_pos[1] + 1
+
+            # Top-Right
+            else:
+                yield pos[0], pos[1] - 1
+                yield pos[0] + 1, pos[1]
+                if pos[0] > 0:
+                    yield pos[0] - 1, pos[1] - 1
+                if pos[1] < board.columns - 1:
+                    yield pos[0] + 1, pos[1] + 1
+                if prev_pos[0] < board.rows - 1:
+                    yield prev_pos[0] + 1, prev_pos[1] + 1
+                if prev_pos[1] > 0:
+                    yield prev_pos[0] - 1, prev_pos[1] - 1
+
+        # Middle
+        elif prev_pos[0] == pos[0]:
+            # Left and Right
+            if pos[0] > 0:
+                yield pos[0] - 1, pos[1]
+                yield prev_pos[0] - 1, prev_pos[1]
+            if pos[0] < board.rows - 1:
+                yield pos[0] + 1, pos[1]
+                yield prev_pos[0] + 1, prev_pos[1]
+
+        # Bottom-side
+        else:
+            # Since the edges are undirected the bottom side is symmetrical to the top side
+            yield from Player.iter_adjacent_squares_from_jump(board, pos, prev_pos, include_jump_squares=False)
 
     # Returns all squares whose non-blocking jumps may be changed if a given wall is placed
     @staticmethod
