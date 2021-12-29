@@ -1,9 +1,9 @@
+import timeit
 from re import fullmatch
 from copy import deepcopy
 from itertools import product, chain
-from random import choice
 import heapq
-from math import hypot
+from math import hypot, inf
 
 from board import Board
 
@@ -50,8 +50,9 @@ class Player:
 
         return new_board
 
-    def next_legal_board_states(self, board):
-        return map(lambda move: self.play_move(board, move, update_walls=False), self.legal_board_moves(board))
+    def next_legal_board_states(self, board, moves=None):
+        return tuple(map(lambda move: self.play_move(board, move, update_walls=False),
+                   self.legal_board_moves(board) if moves is None else moves))
 
     def legal_board_moves(self, board):
         if self.vertical_walls > 0 or self.horizontal_walls > 0:
@@ -502,13 +503,77 @@ class Player:
                 yield row, column + 2
                 yield row + 1, column + 2
 
+    def minimax(self, board, depth, alpha, beta, maximizing_eval):
+        if depth == 0 or board.game_end():
+            return self.static_evaluation(board)
+
+        opponent = self.game.player_2 if self.player == 'X' else self.game.player_1
+        if maximizing_eval:
+            max_eval = -inf
+            for new_board in self.next_legal_board_states(board):
+                evaluation = opponent.minimax(new_board, depth - 1, alpha, beta, False)
+                max_eval = max(max_eval, evaluation)
+
+                alpha = max(alpha, evaluation)
+                if beta <= alpha:
+                    break
+
+            return max_eval
+        else:
+            min_eval = inf
+            for new_board in self.next_legal_board_states(board):
+                evaluation = opponent.minimax(new_board, depth - 1, alpha, beta, True)
+                min_eval = min(min_eval, evaluation)
+
+                beta = min(beta, evaluation)
+                if beta <= alpha:
+                    break
+
+            return min_eval
+
+    @staticmethod
+    def static_evaluation(board):
+        evaluation = 0
+
+        for pawn in board.player_1_pawns:
+            pawn_distance_1 = hypot(pawn[0] - board.player_2_start[0][0], pawn[1] - board.player_2_start[0][1])
+            pawn_distance_2 = hypot(pawn[0] - board.player_2_start[1][0], pawn[1] - board.player_2_start[1][0])
+
+            if pawn_distance_1 == 0 or pawn_distance_2 == 0:
+                return inf
+
+            evaluation += 1 / pawn_distance_1 + 1 / pawn_distance_2
+
+        for pawn in board.player_2_pawns:
+            pawn_distance_1 = hypot(pawn[0] - board.player_1_start[0][0], pawn[1] - board.player_1_start[0][1])
+            pawn_distance_2 = hypot(pawn[0] - board.player_1_start[1][0], pawn[1] - board.player_1_start[1][0])
+
+            if pawn_distance_1 == 0 or pawn_distance_2 == 0:
+                return -inf
+
+            evaluation -= 1 / pawn_distance_1 + 1 / pawn_distance_2
+
+        return evaluation
+
 
 class Computer(Player):
     def __init__(self, player, walls, game):
         super().__init__(player, walls, game)
 
     def get_move(self, board):
-        return choice(self.legal_board_moves(board))
+        moves = self.legal_board_moves(board)
+        boards = self.next_legal_board_states(board, moves=moves)
+
+        best_eval = -inf if self.player == 'X' else inf
+        best_move = None
+        for new_board, move in zip(boards, moves):
+            evaluation = self.minimax(new_board, 0, -inf, inf, self.player == 'X')
+
+            if (self.player == 'X' and best_eval <= evaluation) or (self.player == 'O' and best_eval >= evaluation):
+                best_eval = evaluation
+                best_move = move
+
+        return best_move
 
 
 class Human(Player):
