@@ -50,9 +50,9 @@ class Player:
 
         return new_board
 
-    def next_legal_board_states(self, board, moves=None):
-        return tuple(map(lambda move: self.play_move(board, move, update_walls=False),
-                   self.legal_board_moves(board) if moves is None else moves))
+    def iter_next_legal_board_states(self, board, moves=None):
+        return map(lambda move: self.play_move(board, move, update_walls=False),
+                   self.legal_board_moves(board) if moves is None else moves)
 
     def legal_board_moves(self, board):
         if self.vertical_walls > 0 or self.horizontal_walls > 0:
@@ -510,7 +510,7 @@ class Player:
         opponent = self.game.player_2 if self.player == 'X' else self.game.player_1
         if maximizing_eval:
             max_eval = -inf
-            for new_board in self.next_legal_board_states(board):
+            for new_board in self.iter_next_legal_board_states(board):
                 evaluation = opponent.minimax(new_board, depth - 1, alpha, beta, False)
                 max_eval = max(max_eval, evaluation)
 
@@ -521,7 +521,7 @@ class Player:
             return max_eval
         else:
             min_eval = inf
-            for new_board in self.next_legal_board_states(board):
+            for new_board in self.iter_next_legal_board_states(board):
                 evaluation = opponent.minimax(new_board, depth - 1, alpha, beta, True)
                 min_eval = min(min_eval, evaluation)
 
@@ -561,8 +561,9 @@ class Computer(Player):
         super().__init__(player, walls, game)
 
     def get_move(self, board):
+        time = timeit.default_timer()
         moves = self.legal_board_moves(board)
-        boards = self.next_legal_board_states(board, moves=moves)
+        boards = tuple(self.iter_next_legal_board_states(board, moves=moves))
 
         best_eval = -inf if self.player == 'X' else inf
         best_move = None
@@ -573,6 +574,7 @@ class Computer(Player):
                 best_eval = evaluation
                 best_move = move
 
+        print(timeit.default_timer() - time)
         return best_move
 
 
