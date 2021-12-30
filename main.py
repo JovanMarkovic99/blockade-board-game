@@ -59,6 +59,15 @@ class Game:
             print("Move: " + str(moves))
             current_player.print_player_info()
 
+            # Test for a draw
+            move = current_player.get_move(self.board)
+            if move is None:
+                print('-' * 50)
+                print(("DRAW IN " + str(moves) + " MOVES")
+                      .center(50, '-'))
+                print('-' * 50)
+                return
+
             self.board = current_player.play_move(self.board, current_player.get_move(self.board))
 
         self.board.print_board()

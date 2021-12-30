@@ -484,33 +484,54 @@ class Player:
                 yield row, column + 2
                 yield row + 1, column + 2
 
-    def minimax(self, board, depth, alpha, beta, maximizing_eval):
+    def minimax(self, board, depth, alpha, beta):
         if depth == 0 or board.game_end():
             return self.static_evaluation(board)
 
-        opponent = self.game.player_2 if self.player == 'X' else self.game.player_1
-        if maximizing_eval:
+        no_legal_moves = True
+        if self.player == 'X':
+            opponent = self.game.player_2
+
             max_eval = -inf
-            for new_board in self.iter_next_legal_board_states(board):
-                evaluation = opponent.minimax(new_board, depth - 1, alpha, beta, False)
+            for move in self.legal_board_moves(board):
+                no_legal_moves = False
+
+                evaluation = opponent.minimax(self.play_move(board, move), depth - 1, alpha, beta)
+
                 max_eval = max(max_eval, evaluation)
+
+                if len(move) == 2:
+                    if move[1][0] == 'Z':
+                        self.vertical_walls += 1
+                    else:
+                        self.horizontal_walls += 1
 
                 alpha = max(alpha, evaluation)
                 if beta <= alpha:
                     break
 
-            return max_eval
+            return 0 if no_legal_moves else max_eval
         else:
+            opponent = self.game.player_1
+
             min_eval = inf
-            for new_board in self.iter_next_legal_board_states(board):
-                evaluation = opponent.minimax(new_board, depth - 1, alpha, beta, True)
+            for move in self.legal_board_moves(board):
+                no_legal_moves = False
+
+                evaluation = opponent.minimax(self.play_move(board, move), depth - 1, alpha, beta)
                 min_eval = min(min_eval, evaluation)
+
+                if len(move) == 2:
+                    if move[1][0] == 'Z':
+                        self.vertical_walls += 1
+                    else:
+                        self.horizontal_walls += 1
 
                 beta = min(beta, evaluation)
                 if beta <= alpha:
                     break
 
-            return min_eval
+            return 0 if no_legal_moves else min_eval
 
     @staticmethod
     def static_evaluation(board):
@@ -518,7 +539,7 @@ class Player:
 
         for pawn in board.player_1_pawns:
             pawn_distance_1 = abs(pawn[0] - board.player_2_start[0][0]) + abs(pawn[1] - board.player_2_start[0][1])
-            pawn_distance_2 = abs(pawn[0] - board.player_2_start[1][0]) + abs(pawn[1] - board.player_2_start[1][0])
+            pawn_distance_2 = abs(pawn[0] - board.player_2_start[1][0]) + abs(pawn[1] - board.player_2_start[1][1])
 
             if pawn_distance_1 == 0 or pawn_distance_2 == 0:
                 return inf
@@ -527,7 +548,7 @@ class Player:
 
         for pawn in board.player_2_pawns:
             pawn_distance_1 = abs(pawn[0] - board.player_1_start[0][0]) + abs(pawn[1] - board.player_1_start[0][1])
-            pawn_distance_2 = abs(pawn[0] - board.player_1_start[1][0]) + abs(pawn[1] - board.player_1_start[1][0])
+            pawn_distance_2 = abs(pawn[0] - board.player_1_start[1][0]) + abs(pawn[1] - board.player_1_start[1][1])
 
             if pawn_distance_1 == 0 or pawn_distance_2 == 0:
                 return -inf
@@ -542,17 +563,40 @@ class Computer(Player):
         super().__init__(player, walls, game)
 
     def get_move(self, board):
-        moves = self.legal_board_moves(board)
-        boards = tuple(self.iter_next_legal_board_states(board, moves=moves))
-
-        best_eval = -inf if self.player == 'X' else inf
+        # Search through all the board states after playing every valid moves trying to find the best evaluation
         best_move = None
-        for new_board, move in zip(boards, moves):
-            evaluation = self.minimax(new_board, 1, -inf, inf, self.player == 'X')
+        if self.player == 'X':
+            opponent = self.game.player_2
+            max_eval = -inf
 
-            if (self.player == 'X' and best_eval <= evaluation) or (self.player == 'O' and best_eval >= evaluation):
-                best_eval = evaluation
-                best_move = move
+            for move in self.legal_board_moves(board):
+                evaluation = opponent.minimax(self.play_move(board, move), 1, -inf, inf)
+
+                if len(move) == 2:
+                    if move[1][0] == 'Z':
+                        self.vertical_walls += 1
+                    else:
+                        self.horizontal_walls += 1
+
+                if best_move is None or evaluation > max_eval:
+                    max_eval = evaluation
+                    best_move = move
+        else:
+            opponent = self.game.player_1
+            min_eval = inf
+
+            for move in self.legal_board_moves(board):
+                evaluation = opponent.minimax(self.play_move(board, move), 1, -inf, inf)
+
+                if len(move) == 2:
+                    if move[1][0] == 'Z':
+                        self.vertical_walls += 1
+                    else:
+                        self.horizontal_walls += 1
+
+                if best_move is None or evaluation < min_eval:
+                    min_eval = evaluation
+                    best_move = move
 
         return best_move
 
