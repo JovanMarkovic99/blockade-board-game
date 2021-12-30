@@ -1,5 +1,4 @@
 import heapq
-from math import hypot
 from copy import deepcopy, copy
 
 
@@ -280,10 +279,10 @@ class Board:
 
     # A* algorithm to check if there is a pawn path from the source to the destination
     def check_path(self, source, destination):
+        # Dictionary for keeping track of visited nodes
         seen_dict = {(source[0], source[1]): True}
-        # Heapq is used instead of PriorityQueue because the performance of lists in this case is faster
-        prio_queue = [(hypot(source[1] - destination[1], source[0] - destination[0]), *source)]
 
+        prio_queue = [(abs(source[1] - destination[1]) + abs(source[0] - destination[0]), *source)]
         while len(prio_queue):
             # noinspection PyTupleAssignmentBalance
             _, row, column = heapq.heappop(prio_queue)
@@ -293,7 +292,8 @@ class Board:
 
             for new_pos in filter(lambda jump: jump not in seen_dict, self.iter_non_blocking_jumps(row, column)):
                 seen_dict[new_pos] = True
-                heapq.heappush(prio_queue, (hypot(new_pos[1] - destination[1], new_pos[0] - destination[0]), *new_pos))
+                heapq.heappush(prio_queue, (abs(new_pos[1] - destination[1]) + abs(new_pos[0] - destination[0]),
+                                            *new_pos))
 
         return False
 

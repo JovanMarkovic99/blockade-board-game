@@ -1,9 +1,8 @@
-import timeit
 from re import fullmatch
 from copy import deepcopy
 from itertools import product, chain
 import heapq
-from math import hypot, inf
+from math import inf
 
 from board import Board
 
@@ -350,20 +349,32 @@ class Player:
             for index, path in enumerate(paths):
                 if type(path) is dict:
                     # Check for parts of the path that need to be reconstructed
-                    first_affected_square = None
-                    last_affected_square = None
+                    affected_squares = dict()
                     for potential_square in Player.iter_wall_placement_affected_squares(board, *wall_move):
                         if potential_square in path and path[potential_square] not in \
                                 board.iter_non_blocking_jumps(potential_square[0], potential_square[1]):
-                            if first_affected_square is None:
-                                first_affected_square = potential_square
-                            last_affected_square = path[potential_square]
+                            affected_squares[potential_square] = True
+                            affected_squares[path[potential_square]] = True
 
-                    # Try and reconstruct the path
-                    if first_affected_square is not None and \
-                            not board.check_path(first_affected_square, last_affected_square):
-                        legal = False
-                        break
+                    # Find the path that needs to be reconstructed
+                    if len(affected_squares) > 0:
+                        current = (goals[index % 2][0], goals[index % 2][1])
+                        end = (pawns[index // 2][0], pawns[index // 2][1])
+                        first_affected_square = current if current in affected_squares else None
+                        last_affected_square = None
+                        while current != end:
+                            current = path[current]
+
+                            if current in affected_squares:
+                                if first_affected_square is None:
+                                    first_affected_square = current
+                                last_affected_square = current
+
+                        # Check if the path can be reconstructed
+                        if first_affected_square is not None and \
+                                not board.check_path(first_affected_square, last_affected_square):
+                            legal = False
+                            break
 
             board.place_wall(*wall_move, lift=True)
             if legal:
@@ -379,9 +390,7 @@ class Player:
         # Dictionary for keeping track of the path
         prev_jump = {(source[0], source[1]): None}
 
-        # Heapq is used instead of PriorityQueue because the performance of lists in this case is faster
-        prio_queue = [(hypot(source[1] - destination[1], source[0] - destination[0]), *source)]
-
+        prio_queue = [(abs(source[1] - destination[1]) + abs(source[0] - destination[0]), *source)]
         while len(prio_queue):
             # noinspection PyTupleAssignmentBalance
             _, row, column = heapq.heappop(prio_queue)
@@ -394,7 +403,8 @@ class Player:
                     lambda jump: jump not in prev_jump and (jump_filter is None or jump not in jump_filter),
                     board.iter_non_blocking_jumps(row, column)):
                 prev_jump[new_pos] = pos
-                heapq.heappush(prio_queue, (hypot(new_pos[1] - destination[1], new_pos[0] - destination[0]), *new_pos))
+                heapq.heappush(prio_queue, (abs(new_pos[1] - destination[1]) + abs(new_pos[0] - destination[0]),
+                                            *new_pos))
 
         # Check if a path is found
         if (destination[0], destination[1]) not in prev_jump:
@@ -536,8 +546,8 @@ class Player:
         evaluation = 0
 
         for pawn in board.player_1_pawns:
-            pawn_distance_1 = hypot(pawn[0] - board.player_2_start[0][0], pawn[1] - board.player_2_start[0][1])
-            pawn_distance_2 = hypot(pawn[0] - board.player_2_start[1][0], pawn[1] - board.player_2_start[1][0])
+            pawn_distance_1 = abs(pawn[0] - board.player_2_start[0][0]) + abs(pawn[1] - board.player_2_start[0][1])
+            pawn_distance_2 = abs(pawn[0] - board.player_2_start[1][0]) + abs(pawn[1] - board.player_2_start[1][0])
 
             if pawn_distance_1 == 0 or pawn_distance_2 == 0:
                 return inf
@@ -545,8 +555,8 @@ class Player:
             evaluation += 1 / pawn_distance_1 + 1 / pawn_distance_2
 
         for pawn in board.player_2_pawns:
-            pawn_distance_1 = hypot(pawn[0] - board.player_1_start[0][0], pawn[1] - board.player_1_start[0][1])
-            pawn_distance_2 = hypot(pawn[0] - board.player_1_start[1][0], pawn[1] - board.player_1_start[1][0])
+            pawn_distance_1 = abs(pawn[0] - board.player_1_start[0][0]) + abs(pawn[1] - board.player_1_start[0][1])
+            pawn_distance_2 = abs(pawn[0] - board.player_1_start[1][0]) + abs(pawn[1] - board.player_1_start[1][0])
 
             if pawn_distance_1 == 0 or pawn_distance_2 == 0:
                 return -inf
@@ -561,20 +571,18 @@ class Computer(Player):
         super().__init__(player, walls, game)
 
     def get_move(self, board):
-        time = timeit.default_timer()
         moves = self.legal_board_moves(board)
         boards = tuple(self.iter_next_legal_board_states(board, moves=moves))
 
         best_eval = -inf if self.player == 'X' else inf
         best_move = None
         for new_board, move in zip(boards, moves):
-            evaluation = self.minimax(new_board, 0, -inf, inf, self.player == 'X')
+            evaluation = self.minimax(new_board, 1, -inf, inf, self.player == 'X')
 
             if (self.player == 'X' and best_eval <= evaluation) or (self.player == 'O' and best_eval >= evaluation):
                 best_eval = evaluation
                 best_move = move
 
-        print(timeit.default_timer() - time)
         return best_move
 
 

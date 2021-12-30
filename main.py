@@ -2,7 +2,6 @@
 
 import signal
 import configparser
-import timeit
 from os import path
 from itertools import cycle
 
@@ -67,11 +66,11 @@ class Game:
 
     # Input the config from the user
     def input_config(self):
-        self.rows = self.integer_prompt("Enter an odd number of rows (11 <= x <= 22): ", lower_bound=11,
+        self.rows = self.integer_prompt("Enter an odd number of rows (3 <= x <= 22): ", lower_bound=3,
                                         upper_bound=22, even=False)
-        self.columns = self.integer_prompt("Enter an even number of columns (14 <= x <= 28): ", lower_bound=14,
+        self.columns = self.integer_prompt("Enter an even number of columns (4 <= x <= 28): ", lower_bound=4,
                                            upper_bound=28, even=True)
-        self.walls = self.integer_prompt("Enter the number of walls (9 <= x <= 18): ", lower_bound=9,
+        self.walls = self.integer_prompt("Enter the number of walls (0 <= x <= 18): ", lower_bound=0,
                                          upper_bound=18)
 
         while True:
@@ -124,11 +123,11 @@ class Game:
             for key in config["BOARD_INFO"]:
                 val = int(config["BOARD_INFO"][key])
 
-                if key == "rows" and 11 <= val <= 22 and val % 2 == 1:
+                if key == "rows" and 3 <= val <= 22 and val % 2 == 1:
                     self.rows = val
-                elif key == "columns" and 14 <= val <= 28 and val % 2 == 0:
+                elif key == "columns" and 4 <= val <= 28 and val % 2 == 0:
                     self.columns = val
-                elif key == "walls" and 9 <= val <= 18:
+                elif key == "walls" and 0 <= val <= 18:
                     self.walls = val
 
                 # Player 1 pawn positions (-1 is because the in-game board coordinates starts from 1)
