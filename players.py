@@ -35,19 +35,26 @@ class Player:
     def play_move(self, board, move, update_walls=True):
         new_board = deepcopy(board)
 
-        new_board.move_pawn(*(move[0]))
+        self.in_place_play_move(new_board, move, update_walls)
+
+        return new_board
+
+    def in_place_play_move(self, board, move, update_walls=True, undo=False):
+        undo_move = board.move_pawn(*(move[0]))
 
         if len(move) == 2:
-            new_board.place_wall(*(move[1]))
+            board.place_wall(*(move[1]))
 
             # Update the number of walls
             if update_walls:
                 if move[1][0] == 'Z':
-                    self.vertical_walls -= 1
+                    self.vertical_walls += 1 if undo else -1
                 else:
-                    self.horizontal_walls -= 1
+                    self.horizontal_walls += 1 if undo else -1
 
-        return new_board
+            return board, (undo_move, (*(move[1]), not undo)), update_walls, not undo
+
+        return board, (undo_move,), update_walls, not undo
 
     def iter_next_legal_board_states(self, board, moves=None):
         return map(lambda move: self.play_move(board, move, update_walls=False),
@@ -281,7 +288,7 @@ class Player:
 
             board.move_pawn(*undo_move)
 
-            moves += product([pawn_move], new_wall_moves)
+            moves += product((pawn_move,), new_wall_moves)
 
         return moves
 
@@ -496,15 +503,12 @@ class Player:
             for move in self.legal_board_moves(board):
                 no_legal_moves = False
 
-                evaluation = opponent.minimax(self.play_move(board, move), depth - 1, alpha, beta)
+                undo_move = self.in_place_play_move(board, move)
 
+                evaluation = opponent.minimax(board, depth - 1, alpha, beta)
                 max_eval = max(max_eval, evaluation)
 
-                if len(move) == 2:
-                    if move[1][0] == 'Z':
-                        self.vertical_walls += 1
-                    else:
-                        self.horizontal_walls += 1
+                self.in_place_play_move(*undo_move)
 
                 alpha = max(alpha, evaluation)
                 if beta <= alpha:
@@ -518,14 +522,12 @@ class Player:
             for move in self.legal_board_moves(board):
                 no_legal_moves = False
 
-                evaluation = opponent.minimax(self.play_move(board, move), depth - 1, alpha, beta)
+                undo_move = self.in_place_play_move(board, move)
+
+                evaluation = opponent.minimax(board, depth - 1, alpha, beta)
                 min_eval = min(min_eval, evaluation)
 
-                if len(move) == 2:
-                    if move[1][0] == 'Z':
-                        self.vertical_walls += 1
-                    else:
-                        self.horizontal_walls += 1
+                self.in_place_play_move(*undo_move)
 
                 beta = min(beta, evaluation)
                 if beta <= alpha:
@@ -563,20 +565,17 @@ class Computer(Player):
         super().__init__(player, walls, game)
 
     def get_move(self, board):
-        # Search through all the board states after playing every valid moves trying to find the best evaluation
         best_move = None
         if self.player == 'X':
             opponent = self.game.player_2
             max_eval = -inf
 
             for move in self.legal_board_moves(board):
-                evaluation = opponent.minimax(self.play_move(board, move), 1, -inf, inf)
+                undo_move = self.in_place_play_move(board, move)
 
-                if len(move) == 2:
-                    if move[1][0] == 'Z':
-                        self.vertical_walls += 1
-                    else:
-                        self.horizontal_walls += 1
+                evaluation = opponent.minimax(board, 0, -inf, inf)
+
+                self.in_place_play_move(*undo_move)
 
                 if best_move is None or evaluation > max_eval:
                     max_eval = evaluation
@@ -586,13 +585,11 @@ class Computer(Player):
             min_eval = inf
 
             for move in self.legal_board_moves(board):
-                evaluation = opponent.minimax(self.play_move(board, move), 1, -inf, inf)
+                undo_move = self.in_place_play_move(board, move)
 
-                if len(move) == 2:
-                    if move[1][0] == 'Z':
-                        self.vertical_walls += 1
-                    else:
-                        self.horizontal_walls += 1
+                evaluation = opponent.minimax(board, 0, -inf, inf)
+
+                self.in_place_play_move(*undo_move)
 
                 if best_move is None or evaluation < min_eval:
                     min_eval = evaluation
