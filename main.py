@@ -55,9 +55,9 @@ class Game:
             current_player = next(player_cycle)
             moves += 1
 
-            #self.board.print_board()
-            #print("Move: " + str(moves))
-            #current_player.print_player_info()
+            self.board.print_board()
+            print("Move: " + str(moves))
+            current_player.print_player_info()
 
             # Test for a draw
             move = current_player.get_move(self.board)

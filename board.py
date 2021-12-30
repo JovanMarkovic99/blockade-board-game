@@ -1,5 +1,6 @@
 import heapq
 from copy import deepcopy, copy
+import numpy as np
 
 
 class Board:
@@ -11,7 +12,7 @@ class Board:
         self.player_1_start = (copy(player_1_pawns[0]), copy(player_1_pawns[1]))
         self.player_2_start = (copy(player_2_pawns[0]), copy(player_2_pawns[1]))
 
-        self.board = [[BoardSquare() for _ in range(columns)] for _ in range(rows)]
+        self.board = np.array([[BoardSquare() for column in range(columns)] for row in range(rows)])
         self.board[player_1_pawns[0][0]][player_1_pawns[0][1]].set_start('X')
         self.board[player_1_pawns[1][0]][player_1_pawns[1][1]].set_start('X')
         self.board[player_2_pawns[0][0]][player_2_pawns[0][1]].set_start('O')
