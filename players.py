@@ -64,206 +64,184 @@ class Player:
         pawns = board.player_1_pawns if self.player == 'X' else board.player_2_pawns
 
         return tuple(chain(
-            map(lambda l: (self.player, 0, *l), self.legal_jumps(board, pawns[0][0], pawns[0][1])),
-            map(lambda l: (self.player, 1, *l), self.legal_jumps(board, pawns[1][0], pawns[1][1]))
+            map(lambda l: (self.player, 0, *l), self.iter_legal_jumps(board, pawns[0][0], pawns[0][1])),
+            map(lambda l: (self.player, 1, *l), self.iter_legal_jumps(board, pawns[1][0], pawns[1][1]))
         ))
 
     # Returns all legal pawn jumps from the square with the row and column
-    def legal_jumps(self, board, row, column):
-        # TODO: Rewrite function as a generator
-
-        jumps = [(row - 2, column),  # Topmost
-                 (row - 1, column),  # Top
-                 (row - 1, column - 1),  # Top-left
-                 (row - 1, column + 1),  # Top-right
-                 (row, column - 2),  # Leftmost
-                 (row, column - 1),  # Left
-                 (row, column + 2),  # Rightmost
-                 (row, column + 1),  # Right
-                 (row + 2, column),  # Bottommost
-                 (row + 1, column),  # Bottom,
-                 (row + 1, column - 1),  # Bottom-left
-                 (row + 1, column + 1),  # Bottom-right
-                 ]
+    def iter_legal_jumps(self, board, row, column):
         source_square = board.board[row][column]
 
-        if row == 0:
-            # Top-side
-            jumps[0] = jumps[1] = jumps[2] = jumps[3] = False
-        else:
-            # Top-left
-            if column == 0 or (
-                    (board.board[row - 1][column - 1].center == 'X' or board.board[row - 1][
-                        column - 1].center == 'O') and
-                    (board.board[row - 1][column - 1].starting is None or board.board[row - 1][
-                        column - 1].starting == self.player)
-            ) or (
-                    source_square.top_left()
-            ) or (
-                    board.board[row - 1][column - 1].bottom_right()
-            ) or (
-                    source_square.top and board.board[row][column - 1].top
-            ) or (
-                    source_square.left and board.board[row - 1][column].left
-            ):
-                jumps[2] = False
-
-            # Top-right
-            if column == board.columns - 1 or (
-                    (board.board[row - 1][column + 1].center == 'X' or board.board[row - 1][
-                        column + 1].center == 'O') and
-                    (board.board[row - 1][column + 1].starting is None or board.board[row - 1][
-                        column + 1].starting == self.player)
-            ) or (
-                    source_square.top_right()
-            ) or (
-                    board.board[row - 1][column + 1].bottom_left()
-            ) or (
-                    source_square.top and board.board[row][column + 1].top
-            ) or (
-                    source_square.right and board.board[row - 1][column].right
-            ):
-                jumps[3] = False
-
-            # Topmost and Top
-            if source_square.top:
-                jumps[0] = jumps[1] = False
-            else:
-                # Top
-                if (board.board[row - 1][column].starting is None or board.board[row - 1][
-                    column].starting == self.player) \
-                        and (
-                        board.board[row - 1][column].center == 'X' or board.board[row - 1][column].center == 'O' or
-                        board.board[row - 1][column].top or
-                        row == 1 or
-                        (board.board[row - 2][column].center != 'X' and board.board[row - 2][column].center != 'O')
-                ):
-                    jumps[1] = False
-
-                # Top-most
-                if row == 1 or board.board[row - 1][column].top or \
-                        (
-                                (board.board[row - 2][column].starting is None or board.board[row - 2][
-                                    column].starting == self.player)
-                                and
-                                (board.board[row - 2][column].center == 'X' or board.board[row - 2][
-                                    column].center == 'O')
-                        ):
-                    jumps[0] = False
-
-        if row == board.rows - 1:
-            # Bottom-side
-            jumps[8] = jumps[9] = jumps[10] = jumps[11] = False
-        else:
-            # Bottom-left
-            if column == 0 or (
-                    (board.board[row + 1][column - 1].center == 'X' or board.board[row + 1][
-                        column - 1].center == 'O') and
-                    (board.board[row + 1][column - 1].starting is None or board.board[row + 1][
-                        column - 1].starting == self.player)
-            ) or (
-                    source_square.bottom_left()
-            ) or (
-                    board.board[row + 1][column - 1].top_right()
-            ) or (
-                    source_square.bottom and board.board[row][column - 1].bottom
-            ) or (
-                    source_square.left and board.board[row + 1][column].left
-            ):
-                jumps[10] = False
-
-            # Bottom-right
-            if column == board.columns - 1 or (
-                    (board.board[row + 1][column + 1].center == 'X' or board.board[row + 1][
-                        column + 1].center == 'O') and
-                    (board.board[row + 1][column + 1].starting is None or board.board[row + 1][
-                        column + 1].starting == self.player)
-            ) or (
-                    source_square.bottom_right()
-            ) or (
-                    board.board[row + 1][column + 1].top_left()
-            ) or (
-                    source_square.bottom and board.board[row][column + 1].bottom
-            ) or (
-                    source_square.right and board.board[row + 1][column].right
-            ):
-                jumps[11] = False
-
-            # Bottommost and Bottom
-            if source_square.bottom:
-                jumps[8] = jumps[9] = False
-            else:
-                # Bottom
-                if (board.board[row + 1][column].starting is None or board.board[row + 1][
-                    column].starting == self.player) \
-                        and (
-                        board.board[row + 1][column].center == 'X' or board.board[row + 1][column].center == 'O' or
-                        board.board[row + 1][column].bottom or
-                        row == board.rows - 2 or
-                        (board.board[row + 2][column].center != 'X' and board.board[row + 2][column].center != 'O')
-                ):
-                    jumps[9] = False
-
-                # Bottom-most
-                if row == board.rows - 2 or board.board[row + 1][column].bottom or \
-                        (
-                                (board.board[row + 2][column].starting is None or board.board[row + 2][
-                                    column].starting == self.player)
-                                and
-                                (board.board[row + 2][column].center == 'X' or board.board[row + 2][
-                                    column].center == 'O')
-                        ):
-                    jumps[8] = False
-
-        # Left-most and Left
-        if column == 0 or source_square.left:
-            jumps[4] = jumps[5] = False
-        else:
-            # Left
-            if (board.board[row][column - 1].starting is None or board.board[row][column - 1].starting == self.player) \
-                    and (
-                    board.board[row][column - 1].center == 'X' or board.board[row][column - 1].center == 'O' or
-                    board.board[row][column - 1].left or
-                    column == 1 or
-                    (board.board[row][column - 2].center != 'X' and board.board[row][column - 2].center != 'O')
-            ):
-                jumps[5] = False
-
-            # Left-most
-            if column == 1 or board.board[row][column - 1].left or \
+        # Top-side
+        if row > 0:
+            # Top-Left
+            if column > 0 and \
+                    not source_square.top_left() and \
+                    not board.board[row - 1][column - 1].bottom_right() and \
+                    not (source_square.left and board.board[row - 1][column].left) and \
+                    not (source_square.top and board.board[row][column - 1].top) and \
                     (
-                            (board.board[row][column - 2].starting is None or board.board[row][
-                                column - 2].starting == self.player)
-                            and
-                            (board.board[row][column - 2].center == 'X' or board.board[row][column - 2].center == 'O')
+                            (board.board[row - 1][column - 1].starting is not None and
+                             board.board[row - 1][column - 1].starting != self.player) or
+                            (board.board[row - 1][column - 1].center != 'X' and
+                             board.board[row - 1][column - 1].center != 'O')
                     ):
-                jumps[4] = False
+                yield row - 1, column - 1
 
-        # Right-most and Right
-        if column == board.columns - 1 or source_square.right:
-            jumps[6] = jumps[7] = False
-        else:
-            # Right
-            if (board.board[row][column + 1].starting is None or board.board[row][column + 1].starting == self.player) \
-                    and (
-                    board.board[row][column + 1].center == 'X' or board.board[row][column + 1].center == 'O' or
-                    board.board[row][column + 1].right or
-                    column == board.columns - 2 or
-                    (board.board[row][column + 2].center != 'X' and board.board[row][column + 2].center != 'O')
-            ):
-                jumps[7] = False
-
-            # Right-most
-            if column == board.columns - 2 or board.board[row][column + 1].right or \
+            # Top-Right
+            if column < board.columns - 1 and \
+                    not source_square.top_right() and \
+                    not board.board[row - 1][column + 1].bottom_left() and \
+                    not (source_square.right and board.board[row - 1][column].right) and \
+                    not (source_square.top and board.board[row][column + 1].top) and \
                     (
-                            (board.board[row][column + 2].starting is None or board.board[row][
-                                column + 2].starting == self.player)
-                            and
-                            (board.board[row][column + 2].center == 'X' or board.board[row][column + 2].center == 'O')
+                            (board.board[row - 1][column + 1].starting is not None and
+                             board.board[row - 1][column + 1].starting != self.player) or
+                            (board.board[row - 1][column + 1].center != 'X' and
+                             board.board[row - 1][column + 1].center != 'O')
                     ):
-                jumps[6] = False
+                yield row - 1, column + 1
 
-        return tuple(filter(lambda jump: jump, jumps))
+            # Top
+            if not source_square.top:
+                # Top-Short
+                if (board.board[row - 1][column].starting is not None and
+                    board.board[row - 1][column].starting != self.player) or \
+                        (
+                                board.board[row - 1][column].center != 'X' and
+                                board.board[row - 1][column].center != 'O' and
+                                (
+                                        row > 1 and
+                                        not board.board[row - 1][column].top and
+                                        (board.board[row - 2][column].center == 'X' or
+                                         board.board[row - 2][column].center == 'O')
+                                )
+                        ):
+                    yield row - 1, column
+
+                # Top-Long
+                if row > 1 and \
+                        not board.board[row - 1][column].top and \
+                        (
+                                (board.board[row - 2][column].starting is not None and
+                                 board.board[row - 2][column].starting != self.player) or
+                                (board.board[row - 2][column].center != 'X' and
+                                 board.board[row - 2][column].center != 'O')
+                        ):
+                    yield row - 2, column
+
+        # Bottom-side
+        if row < board.rows - 1:
+            # Bottom-Left
+            if column > 0 and \
+                    not source_square.bottom_left() and \
+                    not board.board[row + 1][column - 1].top_right() and \
+                    not (source_square.left and board.board[row + 1][column].left) and \
+                    not (source_square.bottom and board.board[row][column - 1].bottom) and \
+                    (
+                            (board.board[row + 1][column - 1].starting is not None and
+                             board.board[row + 1][column - 1].starting != self.player) or
+                            (board.board[row + 1][column - 1].center != 'X' and
+                             board.board[row + 1][column - 1].center != 'O')
+                    ):
+                yield row + 1, column - 1
+
+            # Bottom-Right
+            if column < board.columns - 1 and \
+                    not source_square.bottom_right() and \
+                    not board.board[row + 1][column + 1].top_left() and \
+                    not (source_square.right and board.board[row + 1][column].right) and \
+                    not (source_square.bottom and board.board[row][column + 1].bottom) and \
+                    (
+                            (board.board[row + 1][column + 1].starting is not None and
+                             board.board[row + 1][column + 1].starting != self.player) or
+                            (board.board[row + 1][column + 1].center != 'X' and
+                             board.board[row + 1][column + 1].center != 'O')
+                    ):
+                yield row + 1, column + 1
+
+            # Bottom
+            if not source_square.bottom:
+                # Bottom-Short
+                if (board.board[row + 1][column].starting is not None and
+                    board.board[row + 1][column].starting != self.player) or \
+                        (
+                                board.board[row + 1][column].center != 'X' and
+                                board.board[row + 1][column].center != 'O' and
+                                (
+                                        row < board.rows - 2 and
+                                        not board.board[row + 1][column].bottom and
+                                        (board.board[row + 2][column].center == 'X' or
+                                         board.board[row + 2][column].center == 'O')
+                                )
+                        ):
+                    yield row + 1, column
+
+                # Bottom-Long
+                if row < board.rows - 2 and \
+                        not board.board[row + 1][column].bottom and \
+                        (
+                                (board.board[row + 2][column].starting is not None and
+                                 board.board[row + 2][column].starting != self.player) or
+                                (board.board[row + 2][column].center != 'X' and
+                                 board.board[row + 2][column].center != 'O')
+                        ):
+                    yield row + 2, column
+
+        # Left
+        if column > 0 and not source_square.left:
+            if (board.board[row][column - 1].starting is not None and
+                board.board[row][column - 1].starting != self.player) or \
+                    (
+                            board.board[row][column - 1].center != 'X' and
+                            board.board[row][column - 1].center != 'O' and
+                            (
+                                    column > 1 and
+                                    not board.board[row][column - 1].left and
+                                    (board.board[row][column - 2].center == 'X' or
+                                     board.board[row][column - 2].center == 'O')
+                            )
+                    ):
+                yield row, column - 1
+
+            # Left-Long
+            if column > 1 and \
+                    not board.board[row][column - 1].left and \
+                    (
+                            (board.board[row][column - 2].starting is not None and
+                             board.board[row][column - 2].starting != self.player) or
+                            (board.board[row][column - 2].center != 'X' and
+                             board.board[row][column - 2].center != 'O')
+                    ):
+                yield row, column - 2
+
+        # Right
+        if column < board.columns - 1 and not source_square.right:
+            # Right-Short
+            if (board.board[row][column + 1].starting is not None and
+                board.board[row][column + 1].starting != self.player) or \
+                    (
+                            board.board[row][column + 1].center != 'X' and
+                            board.board[row][column + 1].center != 'O' and
+                            (
+                                    column < board.columns - 2 and
+                                    not board.board[row][column + 1].right and
+                                    (board.board[row][column + 2].center == 'X' or
+                                     board.board[row][column + 2].center == 'O')
+                            )
+                    ):
+                yield row, column + 1
+
+            # Right-Long
+            if column < board.columns - 2 and \
+                    not board.board[row][column + 1].right and \
+                    (
+                            (board.board[row][column + 2].starting is not None and
+                             board.board[row][column + 2].starting != self.player) or
+                            (board.board[row][column + 2].center != 'X' and
+                             board.board[row][column + 2].center != 'O')
+                    ):
+                yield row, column + 2
 
     def legal_wall_placements(self, board):
         legal_moves = []
@@ -349,32 +327,20 @@ class Player:
             for index, path in enumerate(paths):
                 if type(path) is dict:
                     # Check for parts of the path that need to be reconstructed
-                    affected_squares = dict()
+                    first_affected_square = (inf, None)
+                    last_affected_square = (-inf, None)
                     for potential_square in Player.iter_wall_placement_affected_squares(board, *wall_move):
-                        if potential_square in path and path[potential_square] not in \
+                        if potential_square in path and path[potential_square][1] not in \
                                 board.iter_non_blocking_jumps(potential_square[0], potential_square[1]):
-                            affected_squares[potential_square] = True
-                            affected_squares[path[potential_square]] = True
+                            if first_affected_square[0] > path[potential_square][0]:
+                                first_affected_square = (path[potential_square][0], potential_square)
+                            last_affected_square = max(last_affected_square, path[potential_square])
 
-                    # Find the path that needs to be reconstructed
-                    if len(affected_squares) > 0:
-                        current = (goals[index % 2][0], goals[index % 2][1])
-                        end = (pawns[index // 2][0], pawns[index // 2][1])
-                        first_affected_square = current if current in affected_squares else None
-                        last_affected_square = None
-                        while current != end:
-                            current = path[current]
-
-                            if current in affected_squares:
-                                if first_affected_square is None:
-                                    first_affected_square = current
-                                last_affected_square = current
-
-                        # Check if the path can be reconstructed
-                        if first_affected_square is not None and \
-                                not board.check_path(first_affected_square, last_affected_square):
-                            legal = False
-                            break
+                    # Check if the path can be reconstructed
+                    if first_affected_square[1] is not None and \
+                            not board.check_path(first_affected_square[1], last_affected_square[1]):
+                        legal = False
+                        break
 
             board.place_wall(*wall_move, lift=True)
             if legal:
@@ -385,7 +351,7 @@ class Player:
     @staticmethod
     def find_non_adjacent_paths(board, source, destination, jump_filter=None):
         if source[0] == destination[0] and source[1] == destination[1]:
-            return {}, {}
+            return {}, None
 
         # Dictionary for keeping track of the path
         prev_jump = {(source[0], source[1]): None}
@@ -408,26 +374,31 @@ class Player:
 
         # Check if a path is found
         if (destination[0], destination[1]) not in prev_jump:
-            return False, False
+            return False, None
 
-        # Fill out the filter dictionary and the path
-        if jump_filter is None:
-            jump_filter = dict()
+        # Prep for filling the filter if needed
+        new_jump_filter = dict() if jump_filter is None else None
 
-        path = dict()
+        # Trace the path along with the order of nodes
+        ordered_path = dict()
+        order = 0
         current = (destination[0], destination[1])
         while current[0] != source[0] or current[1] != source[1]:
-            path[current] = prev_jump[current]
+            ordered_path[current] = (order, prev_jump[current])
 
-            for adjacent_square in Player.iter_adjacent_squares_from_jump(board, current, prev_jump[current]):
-                jump_filter[adjacent_square] = True
+            # Fill out the filter
+            if new_jump_filter is not None:
+                for adjacent_square in Player.iter_adjacent_squares_from_jump(board, current, prev_jump[current]):
+                    new_jump_filter[adjacent_square] = True
 
             current = prev_jump[current]
+            order += 1
 
-        del jump_filter[(source[0], source[1])]
-        del jump_filter[(destination[0], destination[1])]
+        if new_jump_filter is not None:
+            del new_jump_filter[(source[0], source[1])]
+            del new_jump_filter[(destination[0], destination[1])]
 
-        return path, jump_filter
+        return ordered_path, new_jump_filter
 
     # Returns all the squares that cannot be jumped to in order for the paths to be non-adjacent
     @staticmethod
