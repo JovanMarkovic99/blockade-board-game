@@ -59,7 +59,7 @@ class Game:
             print("Move: " + str(moves))
             current_player.print_player_info()
 
-            # Test for a draw
+            # Get the move and test for a draw
             move = current_player.get_move(self.board)
             if move is None:
                 print('-' * 50)
@@ -68,7 +68,7 @@ class Game:
                 print('-' * 50)
                 return
 
-            self.board = current_player.play_move(self.board, current_player.get_move(self.board))
+            self.board = current_player.play_move(self.board, move)
 
         self.board.print_board()
         current_player.print_winner(moves)

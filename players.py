@@ -30,8 +30,7 @@ class Player:
     def get_move(self, board):
         pass
 
-    # Plays the move and updates the number of player walls if update_walls is True,
-    # afterwards returns the new board state
+    # Plays the move on a new board state which it returns after updating the number of player walls if update_walls
     def play_move(self, board, move, update_walls=True):
         new_board = deepcopy(board)
 
