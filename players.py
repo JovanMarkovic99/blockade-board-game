@@ -605,8 +605,8 @@ class Human(Player):
 
         return \
             ((player, pawn_index, pawn_row, pawn_column),) \
-            if wall_type is None else \
-            (player, pawn_index, pawn_row, pawn_column), (wall_type, wall_row, wall_column)
+                if wall_type is None else \
+                (player, pawn_index, pawn_row, pawn_column), (wall_type, wall_row, wall_column)
 
     def valid_move(self, board, move):
         if move is None:
