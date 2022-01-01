@@ -1,6 +1,6 @@
 import heapq
 import random
-import sys
+from sys import maxsize
 from copy import deepcopy, copy
 from datetime import datetime
 from itertools import product
@@ -25,7 +25,7 @@ class Board:
         random.seed(ZOBRIST_TABLE_SEED)
         self.__num_ids = len(BOARD_SQUARE_TO_ID)
         self.__zobrist_table = \
-            [random.randint(-sys.maxsize, sys.maxsize) for _ in range(self.__num_ids * self.rows * self.columns)]
+            [random.randint(-maxsize, maxsize) for _ in range(self.__num_ids * self.rows * self.columns)]
         self.__hash = None
         self.calculate_hash()
 
