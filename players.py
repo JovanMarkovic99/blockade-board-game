@@ -572,7 +572,7 @@ class Computer(Player):
             for move in self.legal_board_moves(board):
                 undo_move = self.in_place_play_move(board, move)
 
-                evaluation = opponent.minimax(board, 0, -inf, inf)
+                evaluation = opponent.minimax(board, 1, -inf, inf)
 
                 self.in_place_play_move(*undo_move)
 
@@ -586,7 +586,7 @@ class Computer(Player):
             for move in self.legal_board_moves(board):
                 undo_move = self.in_place_play_move(board, move)
 
-                evaluation = opponent.minimax(board, 0, -inf, inf)
+                evaluation = opponent.minimax(board, 1, -inf, inf)
 
                 self.in_place_play_move(*undo_move)
 
