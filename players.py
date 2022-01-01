@@ -1,8 +1,9 @@
 from re import fullmatch
 from copy import deepcopy
-from itertools import product, chain
+from itertools import product, chain, repeat
 import heapq
 from math import inf
+import multiprocessing
 
 from board import Board
 
@@ -565,36 +566,43 @@ class Computer(Player):
 
     def get_move(self, board):
         best_move = None
+        moves = self.legal_board_moves(board)
         if self.player == 'X':
             opponent = self.game.player_2
             max_eval = -inf
 
-            for move in self.legal_board_moves(board):
-                undo_move = self.in_place_play_move(board, move)
+            # Spawn child processes for as many moves
+            with multiprocessing.Pool() as pool:
+                evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), repeat(opponent), moves))
 
-                evaluation = opponent.minimax(board, 1, -inf, inf)
-
-                self.in_place_play_move(*undo_move)
-
+            for i, evaluation in enumerate(evaluations):
                 if best_move is None or evaluation > max_eval:
                     max_eval = evaluation
-                    best_move = move
+                    best_move = moves[i]
         else:
             opponent = self.game.player_1
             min_eval = inf
 
-            for move in self.legal_board_moves(board):
-                undo_move = self.in_place_play_move(board, move)
+            # Spawn child processes for as many moves
+            with multiprocessing.Pool() as pool:
+                evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), repeat(opponent), moves))
 
-                evaluation = opponent.minimax(board, 1, -inf, inf)
-
-                self.in_place_play_move(*undo_move)
-
+            for i, evaluation in enumerate(evaluations):
                 if best_move is None or evaluation < min_eval:
                     min_eval = evaluation
-                    best_move = move
+                    best_move = moves[i]
 
         return best_move
+
+    # Helper function that the child processes call; plays the move on the board and calls minimax
+    def minimax_caller(self, board, opponent, move):
+        undo_move = self.in_place_play_move(board, move)
+
+        evaluation = opponent.minimax(board, 1, -inf, inf)
+
+        self.in_place_play_move(*undo_move)
+
+        return evaluation
 
 
 class Human(Player):
