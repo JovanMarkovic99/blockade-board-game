@@ -496,6 +496,7 @@ class Player:
             return self.static_evaluation(board)
 
         no_legal_moves = True
+
         if self.player == 'X':
             opponent = self.game.player_2
 
@@ -510,6 +511,7 @@ class Player:
 
                 self.in_place_play_move(*undo_move)
 
+                # Alpha cut off
                 alpha = max(alpha, evaluation)
                 if beta <= alpha:
                     break
@@ -529,6 +531,7 @@ class Player:
 
                 self.in_place_play_move(*undo_move)
 
+                # Beta cut off
                 beta = min(beta, evaluation)
                 if beta <= alpha:
                     break
@@ -565,32 +568,15 @@ class Computer(Player):
         super().__init__(player, walls, game)
 
     def get_move(self, board):
-        best_move = None
+        opponent = self.game.player_2 if self.player == 'X' else self.game.player_2
         moves = self.legal_board_moves(board)
-        if self.player == 'X':
-            opponent = self.game.player_2
-            max_eval = -inf
 
-            # Spawn child processes for as many moves
-            with multiprocessing.Pool() as pool:
-                evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), repeat(opponent), moves))
+        # Spawn child processes for as many moves
+        with multiprocessing.Pool() as pool:
+            evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), repeat(opponent), moves))
 
-            for i, evaluation in enumerate(evaluations):
-                if best_move is None or evaluation > max_eval:
-                    max_eval = evaluation
-                    best_move = moves[i]
-        else:
-            opponent = self.game.player_1
-            min_eval = inf
-
-            # Spawn child processes for as many moves
-            with multiprocessing.Pool() as pool:
-                evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), repeat(opponent), moves))
-
-            for i, evaluation in enumerate(evaluations):
-                if best_move is None or evaluation < min_eval:
-                    min_eval = evaluation
-                    best_move = moves[i]
+        best_evaluation, best_move = \
+            max(zip(evaluations, moves)) if self.player == 'X' else min(zip(evaluations, moves))
 
         return best_move
 
@@ -619,8 +605,8 @@ class Human(Player):
 
         return \
             ((player, pawn_index, pawn_row, pawn_column),) \
-            if wall_type is None else \
-            (player, pawn_index, pawn_row, pawn_column), (wall_type, wall_row, wall_column)
+                if wall_type is None else \
+                (player, pawn_index, pawn_row, pawn_column), (wall_type, wall_row, wall_column)
 
     def valid_move(self, board, move):
         if move is None:
