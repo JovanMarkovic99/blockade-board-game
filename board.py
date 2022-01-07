@@ -1,9 +1,5 @@
 import heapq
-import random
-from sys import maxsize
 from copy import deepcopy, copy
-from datetime import datetime
-from itertools import product
 
 
 class Board:
@@ -20,14 +16,6 @@ class Board:
         self.board[player_1_pawns[1][0]][player_1_pawns[1][1]].set_start('X')
         self.board[player_2_pawns[0][0]][player_2_pawns[0][1]].set_start('O')
         self.board[player_2_pawns[1][0]][player_2_pawns[1][1]].set_start('O')
-
-        # The hash for the board is calculated on creation and afterwards updated on place_wall and move_pawn methods
-        random.seed(ZOBRIST_TABLE_SEED)
-        self.__num_ids = len(BOARD_SQUARE_TO_ID)
-        self.__zobrist_table = \
-            [random.randint(-maxsize, maxsize) for _ in range(self.__num_ids * self.rows * self.columns)]
-        self.__hash = None
-        self.calculate_hash()
 
     def print_board(self):
         for i in range(2 * self.rows + 3):
@@ -229,18 +217,10 @@ class Board:
         # Update pawn position
         player_pawns[pawn_index][0], player_pawns[pawn_index][1] = row, column
 
-        # Update hash
-        self.xor_square_with_hash(old_row, old_column)
-        self.xor_square_with_hash(row, column)
-
         # Update board
         self.board[old_row][old_column].center = \
             ' ' if self.board[old_row][old_column].starting is None else '·'
         self.board[row][column].center = player
-
-        # Update hash
-        self.xor_square_with_hash(old_row, old_column)
-        self.xor_square_with_hash(row, column)
 
         # Return the undoing move
         return player, pawn_index, old_row, old_column
@@ -259,12 +239,6 @@ class Board:
         return True
 
     def place_wall(self, wall_type, row, column, lift=False):
-        # Update hash
-        self.xor_square_with_hash(row, column)
-        self.xor_square_with_hash(row, column + 1)
-        self.xor_square_with_hash(row + 1, column)
-        self.xor_square_with_hash(row + 1, column + 1)
-
         if wall_type == 'Z':
             self.board[row][column].right = not lift
             self.board[row][column + 1].left = not lift
@@ -275,12 +249,6 @@ class Board:
             self.board[row][column + 1].bottom = not lift
             self.board[row + 1][column].top = not lift
             self.board[row + 1][column + 1].top = not lift
-
-        # Update hash
-        self.xor_square_with_hash(row, column)
-        self.xor_square_with_hash(row, column + 1)
-        self.xor_square_with_hash(row + 1, column)
-        self.xor_square_with_hash(row + 1, column + 1)
 
     def check_paths_after_move(self, move, print_failure=True):
         # Make the move
@@ -388,24 +356,6 @@ class Board:
         if column < self.columns - 1 and not self.board[row][column].right:
             yield row, column + 1
 
-    # Calculates the initial hash
-    def calculate_hash(self):
-        self.__hash = hash((self.rows, self.columns,
-                            (tuple(self.player_1_start[0]), tuple(self.player_1_start[1])),
-                            (tuple(self.player_2_start[0]), tuple(self.player_2_start[1]))))
-
-        for row in range(self.rows):
-            for column in range(self.columns):
-                self.xor_square_with_hash(row, column)
-
-        return self.__hash
-
-    # Helper method for xor-ing the hash with the value zobrist value of the BoardSquare on row, column
-    def xor_square_with_hash(self, row, column):
-        self.__hash ^= self.__zobrist_table[row * self.columns * self.__num_ids +
-                                            column * self.__num_ids +
-                                            BOARD_SQUARE_TO_ID[self.board[row][column]]]
-
     @staticmethod
     def matrix_index_to_board_index(index):
         return chr(ord('0') + index + 1) if index < 9 else chr(ord('A') - 9 + index)
@@ -419,20 +369,6 @@ class Board:
     def conditional_print(message, condition):
         if condition:
             print(message)
-
-    def __eq__(self, other):
-        if isinstance(other, Board):
-            return self.rows == other.rows and \
-                   self.columns == other.columns and \
-                   self.player_1_pawns == other.player_1_pawns and \
-                   self.player_1_start == other.player_1_start and \
-                   self.player_2_pawns == other.player_2_pawns and \
-                   self.player_2_start == other.player_2_start and \
-                   self.board == other.board
-        return False
-
-    def __hash__(self):
-        return self.__hash
 
 
 class BoardSquare:
@@ -460,24 +396,3 @@ class BoardSquare:
 
     def bottom_right(self):
         return self.bottom and self.right
-
-    def __eq__(self, other):
-        if isinstance(other, BoardSquare):
-            # self.starting is not counted because BoardSquare only carries it as a helper variable for quick checks
-            return (self.center, self.top, self.left, self.right, self.bottom) == \
-                   (other.center, other.top, other.left, other.right, other.bottom)
-        return False
-
-    def __hash__(self):
-        return hash((self.center, self.top, self.left, self.right, self.bottom))
-
-
-# Dictionary that maps every possible board square to a unique ID
-BOARD_SQUARE_TO_ID = {
-    BoardSquare(center, top, left, right, bottom): square_id
-    for square_id, (center, (top, left, right, bottom)) in
-    enumerate(product((' ', 'X', 'O', '·'), product((True, False), repeat=4)))
-}
-
-# Seed for generating the zobrist table, can be random or set to some constant
-ZOBRIST_TABLE_SEED = datetime.now()
