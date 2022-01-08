@@ -11,11 +11,11 @@ from board import *
 
 class Game:
     def __init__(self):
-        self.rows = None
-        self.columns = None
-        self.walls = None
-        self.player_1_pawns = [[None, None], [None, None]]
-        self.player_2_pawns = [[None, None], [None, None]]
+        self.rows = 0
+        self.columns = 0
+        self.walls = 0
+        self.player_1_pawns = [[0, 0], [0, 0]]
+        self.player_2_pawns = [[0, 0], [0, 0]]
         self.player_1 = None
         self.player_2 = None
         self.board = None
@@ -56,15 +56,14 @@ class Game:
             moves += 1
 
             self.board.print_board()
-            print("Move: " + str(moves))
+            print(f"Move: {moves}")
             current_player.print_player_info()
 
             # Get the move and test for a draw
             move = current_player.get_move(self.board)
             if move is None:
                 print('-' * 50)
-                print(("DRAW IN " + str(moves) + " MOVES")
-                      .center(50, '-'))
+                print(f"DRAW IN {moves} MOVES".center(50, '-'))
                 print('-' * 50)
                 return
 
@@ -79,37 +78,36 @@ class Game:
                                         upper_bound=22, even=False)
         self.columns = self.integer_prompt("Enter an even number of columns (4 <= x <= 28): ", lower_bound=4,
                                            upper_bound=28, even=True)
-        self.walls = self.integer_prompt("Enter the number of walls (0 <= x <= 18): ", lower_bound=0,
-                                         upper_bound=18)
+        self.walls = self.integer_prompt("Enter the number of walls (0 <= x <= 18): ", lower_bound=0, upper_bound=18)
 
         while True:
             # Player 1 pawn positions (-1 is because the in-game board coordinates starts from 1)
-            self.player_1_pawns[0][0] = self.integer_prompt("Enter the row number of the first pawn of player 1 (1 "
-                                                            "<= x <= " + str(self.rows) + "): ", lower_bound=1,
-                                                            upper_bound=self.rows) - 1
-            self.player_1_pawns[0][1] = self.integer_prompt("Enter the column number of the first pawn of player 1 (1 "
-                                                            "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns) - 1
-            self.player_1_pawns[1][0] = self.integer_prompt("Enter the row number of the second pawn of player 1 (1 "
-                                                            "<= x <= " + str(self.rows) + "): ", lower_bound=1,
-                                                            upper_bound=self.rows) - 1
-            self.player_1_pawns[1][1] = self.integer_prompt("Enter the column number of the second pawn of player 1 (1 "
-                                                            "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns) - 1
+            self.player_1_pawns[0][0] = self.integer_prompt(
+                f"Enter the row number of the first pawn of player 1 (1 <= x <= {self.rows}): ",
+                lower_bound=1, upper_bound=self.rows) - 1
+            self.player_1_pawns[0][1] = self.integer_prompt(
+                f"Enter the column number of the first pawn of player 1 (1 <= x <= {self.columns}): ",
+                lower_bound=1, upper_bound=self.columns) - 1
+            self.player_1_pawns[1][0] = self.integer_prompt(
+                f"Enter the row number of the second pawn of player 1 (1 <= x <= {self.rows}): ",
+                lower_bound=1, upper_bound=self.rows) - 1
+            self.player_1_pawns[1][1] = self.integer_prompt(
+                f"Enter the column number of the second pawn of player 1 (1 <= x <= {self.columns}): ",
+                lower_bound=1, upper_bound=self.columns) - 1
 
             # Player 2 pawn positions
-            self.player_2_pawns[0][0] = self.integer_prompt("Enter the row number of the first pawn of player 2 (1 "
-                                                            "<= x <= " + str(self.rows) + "): ", lower_bound=1,
-                                                            upper_bound=self.rows) - 1
-            self.player_2_pawns[0][1] = self.integer_prompt("Enter the column number of the first pawn of player 2 (1 "
-                                                            "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns) - 1
-            self.player_2_pawns[1][0] = self.integer_prompt("Enter the row number of the second pawn of player 2 (1 "
-                                                            "<= x <= " + str(self.rows) + "): ", lower_bound=1,
-                                                            upper_bound=self.rows) - 1
-            self.player_2_pawns[1][1] = self.integer_prompt("Enter the column number of the second pawn of player 2 (1 "
-                                                            "<= x <= " + str(self.columns) + "): ", lower_bound=1,
-                                                            upper_bound=self.columns) - 1
+            self.player_2_pawns[0][0] = self.integer_prompt(
+                f"Enter the row number of the first pawn of player 2 (1 <= x <= {self.rows}): ",
+                lower_bound=1, upper_bound=self.rows) - 1
+            self.player_2_pawns[0][1] = self.integer_prompt(
+                f"Enter the column number of the first pawn of player 2 (1 <= x <= {self.columns}): ",
+                lower_bound=1, upper_bound=self.columns) - 1
+            self.player_2_pawns[1][0] = self.integer_prompt(
+                f"Enter the row number of the second pawn of player 2 (1 <= x <= {self.rows}): ",
+                lower_bound=1, upper_bound=self.rows) - 1
+            self.player_2_pawns[1][1] = self.integer_prompt(
+                f"Enter the column number of the second pawn of player 2 (1 <= x <= {self.columns}): ",
+                lower_bound=1, upper_bound=self.columns) - 1
 
             # Check for colliding pawns
             if self.player_1_pawns[0] in self.player_2_pawns or self.player_1_pawns[1] in self.player_2_pawns \

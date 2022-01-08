@@ -4,6 +4,7 @@ from itertools import product, chain, repeat
 import heapq
 from math import inf
 import multiprocessing
+from timeit import default_timer
 
 from board import Board
 
@@ -16,14 +17,13 @@ class Player:
         self.game = game
 
     def print_player_info(self):
-        print("Playing: " + self.__class__.__name__ + " '" + self.player + "'")
-        print("Vertical walls: " + str(self.vertical_walls))
-        print("Horizontal walls: " + str(self.horizontal_walls))
+        print(f"Playing: {self.__class__.__name__} '{self.player}'")
+        print(f"Vertical walls: {self.vertical_walls}")
+        print(f"Horizontal walls: {self.horizontal_walls}")
 
     def print_winner(self, moves):
         print('-' * 50)
-        print(("WINNER IN " + str(moves) + " MOVES: " + self.__class__.__name__ + " '" + self.player + "'")
-              .center(50, '-'))
+        print(f"WINNER IN {moves} MOVES: {self.__class__.__name__} '{self.player}'".center(50, '-'))
         print('-' * 50)
 
     # Inputs the move from the user or gets the move from the computer and packs it into the following format:
@@ -269,9 +269,40 @@ class Player:
     @staticmethod
     def legal_pawn_wall_move_combinations(board, pawn_moves, wall_moves):
         player = pawn_moves[0][0]
+        if player == 'X':
+            opponent_player = 'O'
+            opponent_pawns = board.player_2_pawns
+            starting = board.player_1_start
+
+        else:
+            opponent_player = 'X'
+            opponent_pawns = board.player_1_pawns
+            starting = board.player_2_start
+
+        # Sort pawn moves by static evaluation
+        static_evaluations = [0] * len(pawn_moves)
+        for i, pawn_move in enumerate(pawn_moves):
+            undo_move = board.move_pawn(*pawn_move)
+
+            static_evaluations[i] = board.static_evaluation()
+
+            board.move_pawn(*undo_move)
+        pawn_moves = tuple(pawn_move for _, pawn_move in sorted(zip(static_evaluations, pawn_moves),
+                                                                reverse=player == 'X')
+                           )
 
         # Filter out walls that block the path of the opponents pawns
-        wall_moves = Player.filter_blocking_walls(board, 'O' if player == 'X' else 'X', wall_moves)
+        wall_moves = Player.filter_blocking_walls(board, opponent_player, wall_moves)
+
+        # Sort wall moves adjacent to starting square or closest enemy pawns
+        wall_moves.sort(key=lambda wall_move:
+                        3
+                        if board.non_diagonal_distance((wall_move[1], wall_move[2]), starting[0]) <= 2 or
+                        board.non_diagonal_distance((wall_move[1], wall_move[2]), starting[1]) <= 2
+                        else
+                        min(board.non_diagonal_distance((wall_move[1], wall_move[2]), opponent_pawns[0]),
+                            board.non_diagonal_distance((wall_move[1], wall_move[2]), opponent_pawns[1]))
+                        )
 
         # TODO: Change algorithm to use a search tree and process all pawn moves at the same time
         moves = []
@@ -363,7 +394,7 @@ class Player:
         # Dictionary for keeping track of the path
         prev_jump = {(source[0], source[1]): None}
 
-        prio_queue = [(abs(source[1] - destination[1]) + abs(source[0] - destination[0]), *source)]
+        prio_queue = [(board.non_diagonal_distance(source, destination), *source)]
         while len(prio_queue):
             # noinspection PyTupleAssignmentBalance
             _, row, column = heapq.heappop(prio_queue)
@@ -376,8 +407,7 @@ class Player:
                     lambda jump: jump not in prev_jump and (jump_filter is None or jump not in jump_filter),
                     board.iter_non_blocking_jumps(row, column)):
                 prev_jump[new_pos] = pos
-                heapq.heappush(prio_queue, (abs(new_pos[1] - destination[1]) + abs(new_pos[0] - destination[0]),
-                                            *new_pos))
+                heapq.heappush(prio_queue, (board.non_diagonal_distance(new_pos, destination), *new_pos))
 
         # Check if a path is found
         if (destination[0], destination[1]) not in prev_jump:
@@ -493,7 +523,7 @@ class Player:
 
     def minimax(self, board, depth, alpha, beta):
         if depth == 0 or board.game_end():
-            return self.static_evaluation(board)
+            return board.static_evaluation()
 
         no_legal_moves = True
 
@@ -538,36 +568,16 @@ class Player:
 
             return 0 if no_legal_moves else min_eval
 
-    @staticmethod
-    def static_evaluation(board):
-        evaluation = 0
-
-        for pawn in board.player_1_pawns:
-            pawn_distance_1 = abs(pawn[0] - board.player_2_start[0][0]) + abs(pawn[1] - board.player_2_start[0][1])
-            pawn_distance_2 = abs(pawn[0] - board.player_2_start[1][0]) + abs(pawn[1] - board.player_2_start[1][1])
-
-            if pawn_distance_1 == 0 or pawn_distance_2 == 0:
-                return inf
-
-            evaluation += 1 / pawn_distance_1 + 1 / pawn_distance_2
-
-        for pawn in board.player_2_pawns:
-            pawn_distance_1 = abs(pawn[0] - board.player_1_start[0][0]) + abs(pawn[1] - board.player_1_start[0][1])
-            pawn_distance_2 = abs(pawn[0] - board.player_1_start[1][0]) + abs(pawn[1] - board.player_1_start[1][1])
-
-            if pawn_distance_1 == 0 or pawn_distance_2 == 0:
-                return -inf
-
-            evaluation -= 1 / pawn_distance_1 + 1 / pawn_distance_2
-
-        return evaluation
-
 
 class Computer(Player):
     def __init__(self, player, walls, game):
         super().__init__(player, walls, game)
+        self.profiling = True
 
     def get_move(self, board):
+        if self.profiling:
+            start = default_timer()
+
         opponent = self.game.player_2 if self.player == 'X' else self.game.player_2
         moves = self.legal_board_moves(board)
 
@@ -577,6 +587,9 @@ class Computer(Player):
 
         best_evaluation, best_move = \
             max(zip(evaluations, moves)) if self.player == 'X' else min(zip(evaluations, moves))
+
+        if self.profiling:
+            print(f"Computer move time: {default_timer() - start}")
 
         return best_move
 

@@ -1,5 +1,6 @@
 import heapq
 from copy import deepcopy, copy
+from math import inf
 
 
 class Board:
@@ -281,7 +282,7 @@ class Board:
         # Dictionary for keeping track of visited nodes
         seen_dict = {(source[0], source[1]): True}
 
-        prio_queue = [(abs(source[1] - destination[1]) + abs(source[0] - destination[0]), *source)]
+        prio_queue = [(self.non_diagonal_distance(source, destination), *source)]
         while len(prio_queue):
             # noinspection PyTupleAssignmentBalance
             _, row, column = heapq.heappop(prio_queue)
@@ -291,8 +292,7 @@ class Board:
 
             for new_pos in filter(lambda jump: jump not in seen_dict, self.iter_non_blocking_jumps(row, column)):
                 seen_dict[new_pos] = True
-                heapq.heappush(prio_queue, (abs(new_pos[1] - destination[1]) + abs(new_pos[0] - destination[0]),
-                                            *new_pos))
+                heapq.heappush(prio_queue, (self.non_diagonal_distance(new_pos, destination), *new_pos))
 
         return False
 
@@ -355,6 +355,33 @@ class Board:
         # Right
         if column < self.columns - 1 and not self.board[row][column].right:
             yield row, column + 1
+
+    @staticmethod
+    def non_diagonal_distance(source, destination):
+        return abs(source[0] - destination[0]) + abs(source[1] - destination[1])
+
+    def static_evaluation(self):
+        evaluation = 0
+
+        for pawn in self.player_1_pawns:
+            pawn_distance_1 = self.non_diagonal_distance(pawn, self.player_2_start[0])
+            pawn_distance_2 = self.non_diagonal_distance(pawn, self.player_2_start[1])
+
+            if pawn_distance_1 == 0 or pawn_distance_2 == 0:
+                return inf
+
+            evaluation += 1 / pawn_distance_1 + 1 / pawn_distance_2
+
+        for pawn in self.player_2_pawns:
+            pawn_distance_1 = self.non_diagonal_distance(pawn, self.player_1_start[0])
+            pawn_distance_2 = self.non_diagonal_distance(pawn, self.player_1_start[1])
+
+            if pawn_distance_1 == 0 or pawn_distance_2 == 0:
+                return -inf
+
+            evaluation -= 1 / pawn_distance_1 + 1 / pawn_distance_2
+
+        return evaluation
 
     @staticmethod
     def matrix_index_to_board_index(index):
