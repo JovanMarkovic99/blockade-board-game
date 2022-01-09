@@ -280,7 +280,7 @@ class Board:
     # A* algorithm to check if there is a pawn path from the source to the destination
     def check_path(self, source, destination):
         # Dictionary for keeping track of visited nodes
-        seen_dict = {(source[0], source[1]): True}
+        seen_set = {(source[0], source[1])}
 
         prio_queue = [(self.non_diagonal_distance(source, destination), *source)]
         while len(prio_queue):
@@ -290,8 +290,8 @@ class Board:
             if row == destination[0] and column == destination[1]:
                 return True
 
-            for new_pos in filter(lambda jump: jump not in seen_dict, self.iter_non_blocking_jumps(row, column)):
-                seen_dict[new_pos] = True
+            for new_pos in filter(lambda jump: jump not in seen_set, self.iter_non_blocking_jumps(row, column)):
+                seen_set.add(new_pos)
                 heapq.heappush(prio_queue, (self.non_diagonal_distance(new_pos, destination), *new_pos))
 
         return False

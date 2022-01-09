@@ -291,31 +291,52 @@ class Player:
                                                                 reverse=player == 'X')
                            )
 
-        # Filter out walls that block the path of the opponents pawns
-        wall_moves = Player.filter_blocking_walls(board, opponent_player, wall_moves)
-
         # Sort wall moves adjacent to starting square or closest enemy pawns
-        wall_moves.sort(key=lambda wall_move:
+        wall_moves.sort(key=lambda move:
                         3
-                        if board.non_diagonal_distance((wall_move[1], wall_move[2]), starting[0]) <= 2 or
-                        board.non_diagonal_distance((wall_move[1], wall_move[2]), starting[1]) <= 2
+                        if board.non_diagonal_distance((move[1], move[2]), starting[0]) <= 2 or
+                        board.non_diagonal_distance((move[1], move[2]), starting[1]) <= 2
                         else
-                        min(board.non_diagonal_distance((wall_move[1], wall_move[2]), opponent_pawns[0]),
-                            board.non_diagonal_distance((wall_move[1], wall_move[2]), opponent_pawns[1]))
+                        min(board.non_diagonal_distance((move[1], move[2]), opponent_pawns[0]),
+                            board.non_diagonal_distance((move[1], move[2]), opponent_pawns[1]))
                         )
 
         # TODO: Change algorithm to use a search tree and process all pawn moves at the same time
         moves = []
 
+        # Walls not touching any walls on their ends cannot block a path
+        skip_check_set = {
+            wall_move for wall_move in wall_moves
+            if (wall_move[0] == 'Z' and wall_move[1] != 0 and
+                not board.board[wall_move[1]][wall_move[2]].top and
+                not board.board[wall_move[1]][wall_move[2] + 1].top and
+                wall_move[1] != board.rows - 2 and
+                not board.board[wall_move[1] + 1][wall_move[2]].bottom and
+                not board.board[wall_move[1] + 1][wall_move[2] + 1].bottom)
+            or
+               (wall_move[0] == 'P' and wall_move[2] != 0 and
+                not board.board[wall_move[1]][wall_move[2]].left and
+                not board.board[wall_move[1] + 1][wall_move[2]].left and
+                wall_move[2] != board.columns - 2 and
+                not board.board[wall_move[1]][wall_move[2] + 1].right and
+                not board.board[wall_move[1] + 1][wall_move[2] + 1].right)
+        }
+
+        # Filter out walls that block the path of the opponents pawns
+        wall_moves = Player.filter_blocking_walls(board, opponent_player, wall_moves,
+                                                  skip_check_set=skip_check_set)
+
         # Walls that don't block the first and second pawn at their base position
-        non_pawn_blocking = (Player.filter_blocking_walls(board, player, wall_moves, only_pawn_index=0),
-                             Player.filter_blocking_walls(board, player, wall_moves, only_pawn_index=1))
+        non_pawn_blocking = (Player.filter_blocking_walls(board, player, wall_moves, only_pawn_index=0,
+                                                          skip_check_set=skip_check_set),
+                             Player.filter_blocking_walls(board, player, wall_moves, only_pawn_index=1,
+                                                          skip_check_set=skip_check_set))
 
         for pawn_move in pawn_moves:
             undo_move = board.move_pawn(*pawn_move)
 
             new_wall_moves = Player.filter_blocking_walls(board, player, non_pawn_blocking[(pawn_move[1] + 1) % 2],
-                                                          only_pawn_index=pawn_move[1])
+                                                          only_pawn_index=pawn_move[1], skip_check_set=skip_check_set)
 
             board.move_pawn(*undo_move)
 
@@ -328,7 +349,7 @@ class Player:
     # If found, both of the paths cannot be blocked, so path-checking for that path is excluded.
     # If not, it tests if any of the walls obstruct the path and then tries to reconstruct it
     @staticmethod
-    def filter_blocking_walls(board, player, wall_moves, only_pawn_index=None):
+    def filter_blocking_walls(board, player, wall_moves, only_pawn_index=None, skip_check_set=None):
         if player == 'X':
             pawns = board.player_1_pawns
             goals = board.player_2_start
@@ -359,6 +380,10 @@ class Player:
         # Test if any of the walls obstructs the paths and reconstruct the path if necessary
         filtered_wall_moves = []
         for wall_move in wall_moves:
+            if skip_check_set is not None and wall_move in skip_check_set:
+                filtered_wall_moves.append(wall_move)
+                continue
+
             legal = True
             board.place_wall(*wall_move)
 
@@ -414,7 +439,7 @@ class Player:
             return False, None
 
         # Prep for filling the filter if needed
-        new_jump_filter = dict() if jump_filter is None else None
+        new_jump_filter = set() if jump_filter is None else None
 
         # Trace the path along with the order of nodes
         ordered_path = dict()
@@ -426,14 +451,14 @@ class Player:
             # Fill out the filter
             if new_jump_filter is not None:
                 for adjacent_square in Player.iter_adjacent_squares_from_jump(board, current, prev_jump[current]):
-                    new_jump_filter[adjacent_square] = True
+                    new_jump_filter.add(adjacent_square)
 
             current = prev_jump[current]
             order += 1
 
         if new_jump_filter is not None:
-            del new_jump_filter[(source[0], source[1])]
-            del new_jump_filter[(destination[0], destination[1])]
+            new_jump_filter.remove((source[0], source[1]))
+            new_jump_filter.remove((destination[0], destination[1]))
 
         return ordered_path, new_jump_filter
 
@@ -575,29 +600,30 @@ class Computer(Player):
         self.profiling = True
 
     def get_move(self, board):
+        start = None
         if self.profiling:
             start = default_timer()
 
-        opponent = self.game.player_2 if self.player == 'X' else self.game.player_2
         moves = self.legal_board_moves(board)
 
         # Spawn child processes for as many moves
         with multiprocessing.Pool() as pool:
-            evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), repeat(opponent), moves))
+            evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), moves))
 
         best_evaluation, best_move = \
             max(zip(evaluations, moves)) if self.player == 'X' else min(zip(evaluations, moves))
 
-        if self.profiling:
+        if start is not None:
             print(f"Computer move time: {default_timer() - start}")
 
         return best_move
 
     # Helper function that the child processes call; plays the move on the board and calls minimax
-    def minimax_caller(self, board, opponent, move):
+    def minimax_caller(self, board, move):
         undo_move = self.in_place_play_move(board, move)
 
-        evaluation = opponent.minimax(board, 1, -inf, inf)
+        evaluation = self.game.player_2.minimax(board, 1, -inf, inf) if self.player == 'X' else \
+            self.game.player_1.minimax(board, 1, -inf, inf)
 
         self.in_place_play_move(*undo_move)
 
