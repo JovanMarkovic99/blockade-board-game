@@ -281,19 +281,18 @@ class Player:
                         wall_moves.append(('P', row, column))
 
         # Sort wall moves adjacent to starting square or closest enemy pawns
-        opponent_pawns = board.player_2_pawns if self.player == 'X' else board.player_1_pawns
         starting = board.player_1_start if self.player == 'X' else board.player_2_start
 
         wall_moves.sort(key=lambda move:
-                        min(
-                            min(board.non_diagonal_distance((move[1], move[2]), starting[0]),
-                                board.non_diagonal_distance((move[1], move[2]), starting[1])),
-                            min(board.non_diagonal_distance((move[1], move[2]), opponent_pawns[0]),
-                                board.non_diagonal_distance((move[1], move[2]), opponent_pawns[1]))
-                        ))
+                        min(board.non_diagonal_distance((move[1], move[2]), starting[0]),
+                            board.non_diagonal_distance((move[1], move[2]), starting[1])))
 
         return wall_moves if all_moves else \
-            tuple(islice(wall_moves, (board.num_placed_walls // 3) * board.num_placed_walls + 8))
+            tuple(islice(wall_moves,
+                         (board.num_placed_walls // 3
+                          if board.num_placed_walls < 9 else
+                          (board.num_placed_walls // 6 + 1))
+                         * board.num_placed_walls + 8))
 
     # Find all move combinations that don't block any one of the pawns' path to the goal
     @staticmethod
