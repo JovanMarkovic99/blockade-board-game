@@ -7,6 +7,7 @@ class Board:
     def __init__(self, rows, columns, player_1_pawns, player_2_pawns):
         self.rows = rows
         self.columns = columns
+        self.num_placed_walls = 0
         self.player_1_pawns = deepcopy(player_1_pawns)
         self.player_2_pawns = deepcopy(player_2_pawns)
         self.player_1_start = (copy(player_1_pawns[0]), copy(player_1_pawns[1]))
@@ -250,6 +251,8 @@ class Board:
             self.board[row][column + 1].bottom = not lift
             self.board[row + 1][column].top = not lift
             self.board[row + 1][column + 1].top = not lift
+
+        self.num_placed_walls += not lift
 
     def check_paths_after_move(self, move, print_failure=True):
         # Make the move

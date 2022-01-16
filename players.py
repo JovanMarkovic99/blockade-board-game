@@ -1,6 +1,6 @@
 from re import fullmatch
 from copy import deepcopy
-from itertools import product, chain, repeat
+from itertools import product, chain, repeat, islice
 import heapq
 from math import inf
 import multiprocessing
@@ -60,20 +60,37 @@ class Player:
         return map(lambda move: self.play_move(board, move, update_walls=False),
                    self.legal_board_moves(board) if moves is None else moves)
 
-    def legal_board_moves(self, board):
+    def legal_board_moves(self, board, all_moves=True):
         if self.vertical_walls > 0 or self.horizontal_walls > 0:
-            return self.legal_pawn_wall_move_combinations(board, self.legal_pawn_moves(board),
-                                                          self.legal_wall_placements(board))
+            return self.legal_pawn_wall_move_combinations(board, self.legal_pawn_moves(board, all_moves=all_moves),
+                                                          self.legal_wall_placements(board, all_moves=all_moves))
         else:
-            return tuple(map(lambda move: (move,), self.legal_pawn_moves(board)))
+            return tuple(map(lambda move: (move,), self.legal_pawn_moves(board, all_moves=all_moves)))
 
-    def legal_pawn_moves(self, board):
+    def legal_pawn_moves(self, board, all_moves=True):
         pawns = board.player_1_pawns if self.player == 'X' else board.player_2_pawns
-
-        return tuple(chain(
+        pawn_moves = tuple(chain(
             map(lambda l: (self.player, 0, *l), self.iter_legal_jumps(board, pawns[0][0], pawns[0][1])),
             map(lambda l: (self.player, 1, *l), self.iter_legal_jumps(board, pawns[1][0], pawns[1][1]))
         ))
+
+        # Sort pawn moves by static evaluation
+        static_evaluations = [0] * len(pawn_moves)
+        for i, pawn_move in enumerate(pawn_moves):
+            undo_move = board.move_pawn(*pawn_move)
+
+            static_evaluations[i] = board.static_evaluation()
+
+            board.move_pawn(*undo_move)
+        pawn_moves = tuple(pawn_move for _, pawn_move in sorted(zip(static_evaluations, pawn_moves),
+                                                                reverse=self.player == 'X')
+                           )
+
+        return pawn_moves if all_moves else \
+            tuple(chain(
+                islice(filter(lambda move: move[1] == 0, pawn_moves), 2),
+                islice(filter(lambda move: move[1] == 1, pawn_moves), 2)
+            ))
 
     # Returns all legal pawn jumps from the square with the row and column
     def iter_legal_jumps(self, board, row, column):
@@ -250,56 +267,38 @@ class Player:
                     ):
                 yield row, column + 2
 
-    def legal_wall_placements(self, board):
-        legal_moves = []
+    def legal_wall_placements(self, board, all_moves=True):
+        wall_moves = []
 
         for row in range(board.rows - 1):
             for column in range(board.columns - 1):
                 if self.vertical_walls > 0:
                     if board.valid_wall_placement('Z', row, column, print_failure=False):
-                        legal_moves.append(('Z', row, column))
+                        wall_moves.append(('Z', row, column))
 
                 if self.horizontal_walls > 0:
                     if board.valid_wall_placement('P', row, column, print_failure=False):
-                        legal_moves.append(('P', row, column))
+                        wall_moves.append(('P', row, column))
 
-        return legal_moves
+        # Sort wall moves adjacent to starting square or closest enemy pawns
+        opponent_pawns = board.player_2_pawns if self.player == 'X' else board.player_1_pawns
+        starting = board.player_1_start if self.player == 'X' else board.player_2_start
+
+        wall_moves.sort(key=lambda move:
+                        min(
+                            min(board.non_diagonal_distance((move[1], move[2]), starting[0]),
+                                board.non_diagonal_distance((move[1], move[2]), starting[1])),
+                            min(board.non_diagonal_distance((move[1], move[2]), opponent_pawns[0]),
+                                board.non_diagonal_distance((move[1], move[2]), opponent_pawns[1]))
+                        ))
+
+        return wall_moves if all_moves else \
+            tuple(islice(wall_moves, (board.num_placed_walls // 3) * board.num_placed_walls + 8))
 
     # Find all move combinations that don't block any one of the pawns' path to the goal
     @staticmethod
     def legal_pawn_wall_move_combinations(board, pawn_moves, wall_moves):
         player = pawn_moves[0][0]
-        if player == 'X':
-            opponent_player = 'O'
-            opponent_pawns = board.player_2_pawns
-            starting = board.player_1_start
-
-        else:
-            opponent_player = 'X'
-            opponent_pawns = board.player_1_pawns
-            starting = board.player_2_start
-
-        # Sort pawn moves by static evaluation
-        static_evaluations = [0] * len(pawn_moves)
-        for i, pawn_move in enumerate(pawn_moves):
-            undo_move = board.move_pawn(*pawn_move)
-
-            static_evaluations[i] = board.static_evaluation()
-
-            board.move_pawn(*undo_move)
-        pawn_moves = tuple(pawn_move for _, pawn_move in sorted(zip(static_evaluations, pawn_moves),
-                                                                reverse=player == 'X')
-                           )
-
-        # Sort wall moves adjacent to starting square or closest enemy pawns
-        wall_moves.sort(key=lambda move:
-                        3
-                        if board.non_diagonal_distance((move[1], move[2]), starting[0]) <= 2 or
-                        board.non_diagonal_distance((move[1], move[2]), starting[1]) <= 2
-                        else
-                        min(board.non_diagonal_distance((move[1], move[2]), opponent_pawns[0]),
-                            board.non_diagonal_distance((move[1], move[2]), opponent_pawns[1]))
-                        )
 
         # TODO: Change algorithm to use a search tree and process all pawn moves at the same time
         moves = []
@@ -323,7 +322,7 @@ class Player:
         }
 
         # Filter out walls that block the path of the opponents pawns
-        wall_moves = Player.filter_blocking_walls(board, opponent_player, wall_moves,
+        wall_moves = Player.filter_blocking_walls(board, 'O' if player == 'X' else 'X', wall_moves,
                                                   skip_check_set=skip_check_set)
 
         # Walls that don't block the first and second pawn at their base position
@@ -414,7 +413,7 @@ class Player:
     @staticmethod
     def find_non_adjacent_paths(board, source, destination, jump_filter=None):
         if source[0] == destination[0] and source[1] == destination[1]:
-            return {}, None
+            return {}, set() if jump_filter is None else None
 
         # Dictionary for keeping track of the path
         prev_jump = {(source[0], source[1]): None}
@@ -436,7 +435,7 @@ class Player:
 
         # Check if a path is found
         if (destination[0], destination[1]) not in prev_jump:
-            return False, None
+            return False, set() if jump_filter is None else None
 
         # Prep for filling the filter if needed
         new_jump_filter = set() if jump_filter is None else None
@@ -556,7 +555,7 @@ class Player:
             opponent = self.game.player_2
 
             max_eval = -inf
-            for move in self.legal_board_moves(board):
+            for move in self.legal_board_moves(board, all_moves=False):
                 no_legal_moves = False
 
                 undo_move = self.in_place_play_move(board, move)
@@ -576,7 +575,7 @@ class Player:
             opponent = self.game.player_1
 
             min_eval = inf
-            for move in self.legal_board_moves(board):
+            for move in self.legal_board_moves(board, all_moves=False):
                 no_legal_moves = False
 
                 undo_move = self.in_place_play_move(board, move)
@@ -604,7 +603,7 @@ class Computer(Player):
         if self.profiling:
             start = default_timer()
 
-        moves = self.legal_board_moves(board)
+        moves = self.legal_board_moves(board, all_moves=False)
 
         # Spawn child processes for as many moves
         with multiprocessing.Pool() as pool:
@@ -622,8 +621,8 @@ class Computer(Player):
     def minimax_caller(self, board, move):
         undo_move = self.in_place_play_move(board, move)
 
-        evaluation = self.game.player_2.minimax(board, 1, -inf, inf) if self.player == 'X' else \
-            self.game.player_1.minimax(board, 1, -inf, inf)
+        evaluation = self.game.player_2.minimax(board, 2, -inf, inf) if self.player == 'X' else \
+            self.game.player_1.minimax(board, 2, -inf, inf)
 
         self.in_place_play_move(*undo_move)
 
