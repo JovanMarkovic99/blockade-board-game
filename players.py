@@ -38,6 +38,8 @@ class Player:
             start = default_timer()
 
         moves = self.legal_board_moves(board, all_moves=False)
+        if len(moves) == 0:
+            return None
 
         # Spawn child processes for as many moves
         with multiprocessing.Pool() as pool:
@@ -636,6 +638,10 @@ class Human(Player):
         super().__init__(player, walls, game)
 
     def get_move(self, board):
+        # Check if there are any legal moves
+        if len(self.legal_board_moves(board)) == 0:
+            return None
+
         # Ask for input until the move is valid
         move = None
         while not self.valid_move(board, move):
@@ -644,6 +650,8 @@ class Human(Player):
             # Add command for generating a computer move for the player
             if move == "!get_move":
                 return self.get_computer_move(board)
+            elif move == "!skip":
+                return ()
 
         player, pawn_index, pawn_row, pawn_column, wall_type, wall_row, wall_column = self.extract_move_info(move)
 

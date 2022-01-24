@@ -66,8 +66,9 @@ class Game:
                 print(f"DRAW IN {moves} MOVES".center(50, '-'))
                 print('-' * 50)
                 return
-
-            self.board = current_player.play_move(self.board, move)
+            # Check for turn skipping (as a human command)
+            elif move != ():
+                self.board = current_player.play_move(self.board, move)
 
         self.board.print_board()
         current_player.print_winner(moves)
