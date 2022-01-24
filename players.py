@@ -15,6 +15,7 @@ class Player:
         self.vertical_walls = walls
         self.horizontal_walls = walls
         self.game = game
+        self.profiling = True
 
     def print_player_info(self):
         print(f"Playing: {self.__class__.__name__} '{self.player}'")
@@ -30,6 +31,25 @@ class Player:
     # ((player, player_pawn, new_row, new_col), optional(wall_type, row, col))
     def get_move(self, board):
         pass
+
+    def get_computer_move(self, board):
+        start = None
+        if self.profiling:
+            start = default_timer()
+
+        moves = self.legal_board_moves(board, all_moves=False)
+
+        # Spawn child processes for as many moves
+        with multiprocessing.Pool() as pool:
+            evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), moves))
+
+        best_evaluation, best_move = \
+            max(zip(evaluations, moves)) if self.player == 'X' else min(zip(evaluations, moves))
+
+        if start is not None:
+            print(f"Computer move time: {default_timer() - start}")
+
+        return best_move
 
     # Plays the move on a new board state which it returns after updating the number of player walls if update_walls
     def play_move(self, board, move, update_walls=True):
@@ -591,31 +611,6 @@ class Player:
 
             return 0 if no_legal_moves else min_eval
 
-
-class Computer(Player):
-    def __init__(self, player, walls, game):
-        super().__init__(player, walls, game)
-        self.profiling = True
-
-    def get_move(self, board):
-        start = None
-        if self.profiling:
-            start = default_timer()
-
-        moves = self.legal_board_moves(board, all_moves=False)
-
-        # Spawn child processes for as many moves
-        with multiprocessing.Pool() as pool:
-            evaluations = pool.starmap(self.minimax_caller, zip(repeat(board), moves))
-
-        best_evaluation, best_move = \
-            max(zip(evaluations, moves)) if self.player == 'X' else min(zip(evaluations, moves))
-
-        if start is not None:
-            print(f"Computer move time: {default_timer() - start}")
-
-        return best_move
-
     # Helper function that the child processes call; plays the move on the board and calls minimax
     def minimax_caller(self, board, move):
         undo_move = self.in_place_play_move(board, move)
@@ -628,6 +623,14 @@ class Computer(Player):
         return evaluation
 
 
+class Computer(Player):
+    def __init__(self, player, walls, game):
+        super().__init__(player, walls, game)
+
+    def get_move(self, board):
+        return self.get_computer_move(board)
+
+
 class Human(Player):
     def __init__(self, player, walls, game):
         super().__init__(player, walls, game)
@@ -637,6 +640,10 @@ class Human(Player):
         move = None
         while not self.valid_move(board, move):
             move = input("Enter the move: ").strip()
+
+            # Add command for generating a computer move for the player
+            if move == "!get_move":
+                return self.get_computer_move(board)
 
         player, pawn_index, pawn_row, pawn_column, wall_type, wall_row, wall_column = self.extract_move_info(move)
 
