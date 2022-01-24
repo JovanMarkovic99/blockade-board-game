@@ -85,7 +85,7 @@ class Player:
             return self.legal_pawn_wall_move_combinations(board, self.legal_pawn_moves(board, all_moves=all_moves),
                                                           self.legal_wall_placements(board, all_moves=all_moves))
         else:
-            return tuple(map(lambda move: (move,), self.legal_pawn_moves(board, all_moves=all_moves)))
+            return tuple(map(lambda move: (move,), self.legal_pawn_moves(board)))
 
     def legal_pawn_moves(self, board, all_moves=True):
         pawns = board.player_1_pawns if self.player == 'X' else board.player_2_pawns
